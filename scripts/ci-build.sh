@@ -18,20 +18,23 @@ apk update -q
 # compiles cleanly on Wolfi/glibc.
 apk add --no-cache gcc make pkgconf scdoc openssl openssl-dev zlib-dev wget clang mold pigz
 
-# openssf-compiler-options wraps /usr/bin/clang → gcc-wrapper (adds linker
-# hardening flags that produce stderr, breaking configure tests).  Its
-# post-install hook re-creates the symlink on every makedep install, so
-# a one-shot ln -sf does not survive abuild's makedep step.
-# Fix: pin CC/CXX to the absolute versioned binary (e.g. /usr/bin/clang-22),
-# which the hook never overwrites.  Write abuild.conf directly to avoid
-# sed quoting ambiguity with double-quoted variable expansion in POSIX sh.
+# openssf-compiler-options (a Wolfi dep) wraps /usr/bin/clang → gcc-wrapper
+# (adds linker hardening flags that break configure tests).  Its post-install
+# hook re-creates the symlink on every makedep install, so a one-shot ln -sf
+# does not survive abuild's makedep step.
+#
+# abuild's readconfig() in functions.sh uses `local _CC=cc` as a default,
+# making /etc/abuild.conf's CC= assignment silently ignored.  CC/CXX must be
+# exported in the *calling environment* before abuild runs so readconfig saves
+# and restores the right value via CC=${_CC-$CC}.
+#
+# Detect the versioned binary (e.g. /usr/bin/clang-22).  The versioned path
+# is never overwritten by the openssf hook; exporting it as CC bypasses both
+# the wrapper symlink and the readconfig default.
 CLANG_BIN=$(ls /usr/bin/clang-[0-9]* 2>/dev/null | head -1)
 CLANGPP_BIN=$(ls /usr/bin/clang++-[0-9]* 2>/dev/null | head -1)
 CC_BIN="${CLANG_BIN:-clang}"
 CXX_BIN="${CLANGPP_BIN:-clang++}"
-printf 'resolved CC=%s  CXX=%s\n' "$CC_BIN" "$CXX_BIN" >&2
-ls -la /usr/bin/clang* /usr/lib/llvm*/bin/clang* 2>/dev/null >&2 || true
-find /etc/clang /usr/lib/clang /usr/share/openssf* -name "*.cfg" -o -name "flags" 2>/dev/null >&2 | head -20 || true
 
 wget -q "https://github.com/alpinelinux/abuild/archive/refs/tags/${ABUILD_VER}.tar.gz" \
     -O /tmp/abuild.tar.gz
@@ -50,11 +53,6 @@ export JOBS=\$(nproc)
 export ABUILD_GZIP="pigz -9"
 export STRIP="strip --strip-unneeded"
 ABUILDCONF
-echo "=== /etc/abuild.conf ===" >&2
-cat /etc/abuild.conf >&2
-echo 'int main(){return 0;}' > /tmp/conftest.c
-printf '=== test compile output: [%s] ===\n' \
-    "$("$CC_BIN" -c "-O3" "-march=$MARCH" "-flto=thin" "-fomit-frame-pointer" /tmp/conftest.c -o /tmp/conftest.o 2>&1 || true)" >&2
 
 mkdir -p /etc/apk/keys ~/.abuild
 printf '%s\n' "$SILEX_PKG_RSA"     > /etc/apk/keys/silex-packages.rsa
@@ -66,10 +64,6 @@ printf 'PACKAGER="Silex CI <noreply@richarah.github.io>"\nPACKAGER_PRIVKEY="/etc
 # abuild-sudo requires the abuild group to exist (even for root)
 addgroup -S abuild 2>/dev/null || groupadd -r abuild 2>/dev/null || true
 
-# abuild's readconfig() in functions.sh uses `local _CC=cc` as a default,
-# making /etc/abuild.conf's CC= setting ignored.  CC/CXX must be exported
-# in the *calling environment* before abuild runs so readconfig saves and
-# restores the right value via CC=${_CC-$CC}.
 export CC="$CC_BIN"
 export CXX="$CXX_BIN"
 
