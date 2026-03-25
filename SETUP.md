@@ -1,284 +1,167 @@
 # Setting up silex-packages from scratch
 
-Everything here runs on a Debian/Ubuntu host using Alpine containers.
-You never install abuild on your host. Everything happens inside
-`alpine:3.21` containers with your working directory mounted.
+Everything runs in a `debian:bookworm` container. No abuild, no Alpine SDK,
+no APKBUILDs. The build tools are standard Debian packages.
 
 ## 1. Generate signing keys
 
-apk packages must be signed. Generate a keypair once:
+Keys must be RSA-2048 PEM files. Generate them once with openssl:
 
 ```sh
 mkdir -p keys
-
-docker run --rm -it -v "$PWD/keys:/keys" alpine:3.21 sh -c '
-    apk add abuild
-    abuild-keygen -a -n
-    cp /root/.abuild/*.rsa /keys/
-    cp /root/.abuild/*.rsa.pub /keys/
-'
+openssl genrsa -out keys/silex-packages.rsa 2048
+openssl rsa -in keys/silex-packages.rsa -pubout -out keys/silex-packages.rsa.pub
+chmod 600 keys/silex-packages.rsa
 ```
 
-You now have two files in `keys/`:
-- `*.rsa` — private key. NEVER commit this.
-- `*.rsa.pub` — public key. Commit this. Goes in the Silex image.
+- `keys/silex-packages.rsa` — private key. **Never commit this.**
+- `keys/silex-packages.rsa.pub` — public key. Commit it. Shipped in Silex images.
 
-The filenames look like `-69c32bcf.rsa`. That's normal. Alpine
-names them with a hash fragment.
+The `.gitignore` includes `*.rsa` (private) and `!*.rsa.pub` (exception for
+public). Verify with `git status` before committing.
 
 ## 2. Add secrets to GitHub
 
 Go to the silex-packages repo:
 Settings -> Secrets and variables -> Actions -> New repository secret.
 
-- `SILEX_PKG_RSA`: paste the ENTIRE contents of `keys/*.rsa`,
+- `SILEX_PKG_RSA`: paste the full contents of `keys/silex-packages.rsa`,
   including the `-----BEGIN RSA PRIVATE KEY-----` and
   `-----END RSA PRIVATE KEY-----` lines.
 
-- `SILEX_PKG_RSA_PUB`: paste the ENTIRE contents of `keys/*.rsa.pub`.
+- `SILEX_PKG_RSA_PUB`: paste the full contents of `keys/silex-packages.rsa.pub`.
 
-These are repository secrets, not environment secrets.
-
-The main silex repo does NOT need secrets. It only needs the
-public key committed as a file.
-
-## 3. Set up .gitignore
-
-```
-x86_64/*.apk
-aarch64/*.apk
-x86_64/APKINDEX.tar.gz
-aarch64/APKINDEX.tar.gz
-*/src/
-*/pkg/
-tmp/
-*.rsa
-!*.rsa.pub
-/root/.abuild/
-*.tar.gz
-*.tar.xz
-*.tar.bz2
-.DS_Store
-```
-
-The `!*.rsa.pub` exception keeps the public key tracked.
-Verify with `git status` that `keys/*.rsa.pub` shows as tracked
-and `keys/*.rsa` does not.
-
-## 4. Generate checksums
-
-APKBUILDs ship with `sha512sums="SKIP"` until you run this.
-abuild checksum downloads each source tarball and writes the
-real hash into the APKBUILD.
+## 3. Commit the public key
 
 ```sh
-docker run --rm -it -v "$PWD:/work" -w /work alpine:3.21 sh -c '
-    apk add abuild
-    cd /work
-    scripts/gen-checksums.sh
-'
+git add keys/silex-packages.rsa.pub
+git commit -m "keys: add silex-packages public key"
+git push
 ```
 
-This downloads ~500MB of source tarballs. Takes a few minutes.
-After this, every APKBUILD has real sha512sums. Commit the
-updated APKBUILDs.
+CI reads the public key from `keys/` at build time and commits it back with
+the packages so it is accessible at the repo URL.
 
-If a URL 404s (upstream moved the tarball), find the new URL.
-Prefer GitHub Releases URLs — they don't move. For example,
-zlib.net deletes old versions. Use:
-```
-https://github.com/madler/zlib/releases/download/v1.3.2/zlib-1.3.2.tar.gz
-```
-instead of:
-```
-https://zlib.net/zlib-1.3.2.tar.gz
-```
+## 4. Test locally
 
-## 5. Build one package (test)
-
-Always test one package locally before pushing to CI.
+Run the full pipeline in a Debian bookworm container to verify everything works
+before pushing to CI:
 
 ```sh
-docker run --rm -it -v "$PWD:/work" -w /work alpine:3.21 sh -c '
-    apk add abuild alpine-sdk sudo
-    adduser -D builder
-    addgroup builder abuild
-    echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-    mkdir -p /home/builder/.abuild
-    cp /work/keys/*.rsa /home/builder/.abuild/
-    cp /work/keys/*.rsa.pub /home/builder/.abuild/
-    KEYFILE=$(ls /home/builder/.abuild/*.rsa | grep -v pub | head -1)
-    echo "PACKAGER_PRIVKEY=$KEYFILE" > /home/builder/.abuild/abuild.conf
-    chown -R builder:builder /home/builder/.abuild /work
-    cp /work/keys/*.rsa.pub /etc/apk/keys/
-    su builder -c "cd /work/aports/zlib && abuild checksum && abuild -r -P /work"
-'
+docker run --rm -it \
+    -v "$PWD:/work" -w /work \
+    debian:bookworm sh -c '
+        apt-get update -qq
+        apt-get install -y --no-install-recommends \
+            clang mold ninja-build cmake meson autoconf automake \
+            dpkg-dev devscripts fakeroot build-essential \
+            curl ca-certificates git file openssl
+
+        # Enable deb-src
+        sed -i "s/^Types: deb$/Types: deb deb-src/" \
+            /etc/apt/sources.list.d/debian.sources
+        apt-get update -qq
+
+        # Install apk-tools static binary
+        curl -fsSL \
+            "https://gitlab.alpinelinux.org/api/v4/projects/5/packages/generic//v2.14.4/x86_64/apk.static" \
+            -o /usr/local/bin/apk
+        chmod +x /usr/local/bin/apk
+
+        # Set up keys
+        mkdir -p /tmp/silex-keys
+        cp /work/keys/silex-packages.rsa     /tmp/silex-keys/
+        cp /work/keys/silex-packages.rsa.pub /tmp/silex-keys/
+        chmod 600 /tmp/silex-keys/silex-packages.rsa
+
+        chmod +x /work/scripts/*.sh
+        ARCH=x86_64 \
+        PRIVKEY=/tmp/silex-keys/silex-packages.rsa \
+        PUBKEY=/tmp/silex-keys/silex-packages.rsa.pub \
+        /work/scripts/build-all.sh
+    '
 ```
 
-Explanation of what this does:
-- Installs abuild and alpine-sdk (compiler, make, etc)
-- Creates a non-root user (abuild refuses to run as root)
-- Adds builder to abuild group
-- Gives builder passwordless sudo (abuild needs it internally)
-- Copies your signing key and tells abuild where it is
-  via PACKAGER_PRIVKEY in abuild.conf
-- Copies public key to /etc/apk/keys/ (so apk trusts packages
-  signed with your key)
-- Runs `abuild checksum` (downloads source, writes hash)
-- Runs `abuild -r -P /work` (builds package, outputs to /work)
-
-If it works, you'll see a `.apk` file in `x86_64/`.
-
-Common failures:
-- "Do not run abuild as root" — you forgot the builder user
-- "No private key found" — PACKAGER_PRIVKEY not set in abuild.conf
-- "missing in checksums" — run `abuild checksum` first
-- "404 Not Found" — upstream moved the tarball, update the URL
-- "checksum failed" — the tarball changed upstream, verify and
-  update sha512sums
-
-## 6. Build all packages
-
-Same container setup, but run build-all.sh instead:
+For a quick test of just one package:
 
 ```sh
-docker run --rm -it -v "$PWD:/work" -w /work alpine:3.21 sh -c '
-    apk add abuild alpine-sdk sudo
-    adduser -D builder
-    addgroup builder abuild
-    echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-    mkdir -p /home/builder/.abuild
-    cp /work/keys/*.rsa /home/builder/.abuild/
-    cp /work/keys/*.rsa.pub /home/builder/.abuild/
-    KEYFILE=$(ls /home/builder/.abuild/*.rsa | grep -v pub | head -1)
-    echo "PACKAGER_PRIVKEY=$KEYFILE" > /home/builder/.abuild/abuild.conf
-    chown -R builder:builder /home/builder/.abuild /work
-    cp /work/keys/*.rsa.pub /etc/apk/keys/
-    su builder -c "cd /work && scripts/build-all.sh"
-'
+docker run --rm -it \
+    -v "$PWD:/work" -w /work \
+    debian:bookworm sh -c '
+        apt-get update -qq
+        apt-get install -y --no-install-recommends \
+            dpkg-dev devscripts fakeroot build-essential curl ca-certificates file openssl
+        curl -fsSL \
+            "https://gitlab.alpinelinux.org/api/v4/projects/5/packages/generic//v2.14.4/x86_64/apk.static" \
+            -o /usr/local/bin/apk && chmod +x /usr/local/bin/apk
+        chmod +x /work/scripts/*.sh
+        export ARCH=x86_64
+        export REPO_DIR=/work/x86_64
+        export SCRIPTS_DIR=/work/scripts
+        /work/scripts/repack.sh zlib1g-dev
+        apk index --allow-untrusted -o /work/x86_64/APKINDEX.tar.gz /work/x86_64/*.apk
+    '
 ```
 
-This takes a long time. gcc alone is multi-hour. For local testing,
-build individual packages with build-one.sh:
+## 5. Enable GitHub Pages
 
-```sh
-su builder -c "cd /work && scripts/build-one.sh zlib"
-```
-
-## 7. Generate index
-
-After building, generate the APKINDEX:
-
-```sh
-docker run --rm -it -v "$PWD:/work" -w /work alpine:3.21 sh -c '
-    apk add abuild
-    mkdir -p /home/builder/.abuild
-    cp /work/keys/*.rsa /home/builder/.abuild/
-    KEYFILE=$(ls /home/builder/.abuild/*.rsa | grep -v pub | head -1)
-    echo "PACKAGER_PRIVKEY=$KEYFILE" > /home/builder/.abuild/abuild.conf
-    cd /work
-    scripts/index.sh
-'
-```
-
-This creates `x86_64/APKINDEX.tar.gz` (signed).
-
-## 8. Enable GitHub Pages
-
-1. Push everything (APKBUILDs, keys/*.rsa.pub, scripts, CI workflow)
-2. Go to repo Settings -> Pages
-3. Source: "Deploy from a branch"
-4. Branch: main, folder: / (root)
-5. Save
+1. Push the public key, config, and scripts.
+2. Go to repo Settings -> Pages.
+3. Source: "Deploy from a branch", Branch: `main`, Folder: `/`.
+4. Save.
 
 URL: `https://richarah.github.io/silex-packages/`
 
-apk fetches from:
+apk fetches the index from:
 `https://richarah.github.io/silex-packages/x86_64/`
 
-## 9. Test from a Silex container
+## 6. Trigger CI
 
-The silex:slim image has the silex-packages public key and repository
-URL baked in. No manual key or repo setup needed:
+Push any change to `config/**` or `scripts/**` to trigger a build. Or use:
+
+```sh
+gh workflow run build.yml
+```
+
+The workflow builds both architectures in parallel, verifies the output, and
+commits the resulting `.apk` files and `APKINDEX.tar.gz` back to `main`.
+
+## 7. Verify from a container
+
+Once CI has run and Pages has deployed:
 
 ```sh
 docker run --rm -it ghcr.io/richarah/silex:slim sh -c '
     apk update
-    apk add libssl-dev
+    apk add zlib1g-dev
 '
 ```
 
-If `apk add libssl-dev` resolves to `openssl-dev` (via `provides=`)
-and installs successfully, the whole pipeline works.
+Or from a plain Alpine/Wolfi container with the key and repo added manually
+(see README.md for the setup commands).
 
-If testing a locally built image before publishing:
+## Signing design
 
-```sh
-docker run --rm -it silex:slim sh -c '
-    apk update
-    apk add libssl-dev
-'
-```
+Individual `.apk` files are **unsigned**. Only `APKINDEX.tar.gz` is signed.
 
-The key and repo are already in the image at:
-- `/etc/apk/keys/-69c32c6d.rsa.pub`
-- `/etc/apk/repositories` (silex-packages listed before Wolfi)
+This is intentional: `apk index --allow-untrusted` (used to generate the
+index from unsigned packages) works correctly, whereas prepending a gzip
+signature stream to individual packages causes `apk index` to report
+`BAD archive` when it tries to read `.PKGINFO` from the signed packages'
+second gzip stream.
 
-## 10. CI handles this from now on
+Security is maintained: apk verifies each downloaded package's SHA256
+checksum against the signed APKINDEX. A tampered `.apk` will not match
+the index checksum.
 
-Once CI is green, you don't need to build locally anymore.
-Push an APKBUILD change, CI builds it, generates the index,
-commits the .apk files, Pages deploys. The local build steps
-above are only for:
-- Initial setup (this document)
-- Debugging a failing package
-- Testing before pushing
+## Key rotation
 
-## Warning: do not chown /work inside the container
+1. Generate a new keypair (step 1 above).
+2. Update GitHub secrets `SILEX_PKG_RSA` and `SILEX_PKG_RSA_PUB`.
+3. Commit the new public key to `keys/silex-packages.rsa.pub`.
+4. Rebuild the Silex base image so the new public key is baked in.
+5. Run CI to re-sign the APKINDEX with the new key.
 
-The /work mount is your host directory. If you chown it to the
-builder user inside the container, your host user loses write
-access. If this happens:
-
-```sh
-docker run --rm -v "$PWD:/work" alpine:3.21 chown -R $(id -u):$(id -g) /work
-```
-
-Only chown /home/builder/.abuild. abuild-sudo handles the rest.
-
-## Quick reference: the container one-liner
-
-For any abuild operation, this is the skeleton:
-
-```sh
-docker run --rm -it -v "$PWD:/work" -w /work alpine:3.21 sh -c '
-    apk add abuild alpine-sdk sudo
-    adduser -D builder && addgroup builder abuild
-    echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-    mkdir -p /home/builder/.abuild
-    cp /work/keys/*.rsa /home/builder/.abuild/
-    cp /work/keys/*.rsa.pub /home/builder/.abuild/
-    KEYFILE=$(ls /home/builder/.abuild/*.rsa | grep -v pub | head -1)
-    echo "PACKAGER_PRIVKEY=$KEYFILE" > /home/builder/.abuild/abuild.conf
-    chown -R builder:builder /home/builder/.abuild /work
-    cp /work/keys/*.rsa.pub /etc/apk/keys/
-    su builder -c "YOUR_COMMAND_HERE"
-'
-```
-
-Replace YOUR_COMMAND_HERE with whatever you need:
-- `cd /work/aports/zlib && abuild checksum` — update checksum
-- `cd /work/aports/zlib && abuild -r -P /work` — build one package
-- `cd /work && scripts/build-all.sh` — build everything
-- `cd /work && scripts/build-one.sh openssl` — build one by name
-
-## Why Alpine containers for local builds
-
-abuild is an Alpine tool. It's not in Debian or Ubuntu. For local
-builds you need an Alpine container.
-
-CI runs inside `cgr.dev/chainguard/wolfi-base:latest`, which also has
-abuild available from the Wolfi repo. Wolfi is glibc-based (same as
-silex:slim's runtime), so packages built there link correctly. Local
-development uses Alpine containers because they don't require a
-registry login and are simpler to invoke ad-hoc.
+Old containers that have the previous public key in `/etc/apk/keys/` will
+no longer trust the repository until they are rebuilt or the old key is
+added alongside the new one.

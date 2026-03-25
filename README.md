@@ -1,13 +1,15 @@
 # silex-packages
 
 Custom Alpine `.apk` package repository for [Silex](https://github.com/richarah/silex)
-base images. Every package is rebuilt from upstream source with:
+base images. Packages are recompiled from Debian bookworm sources with:
 
 - **Compiler**: clang
 - **Flags**: `-O3 -march=x86-64-v3 -flto=thin -fomit-frame-pointer`
 - **Linker**: mold, `-flto=thin`
-- **Strip**: `strip --strip-unneeded` on all binaries and `.so` files
-- **Compression**: `pigz -9`
+- **Strip**: `strip --strip-unneeded` on all ELF binaries and `.so` files
+
+Packages that do not contain versioned shared libraries (`.so.N`) are repacked
+directly from the Debian binary `.deb` without recompilation.
 
 Architectures: `x86_64`, `aarch64`.
 
@@ -17,16 +19,10 @@ Repository URL: `https://richarah.github.io/silex-packages/`
 
 ## Using this repository
 
-In a Silex container, `/etc/apk/repositories` already includes this repo:
+In a Silex container, `/etc/apk/repositories` already includes this repo and
+the public key is pre-installed in `/etc/apk/keys/`. Run `apk update` to sync.
 
-```
-https://richarah.github.io/silex-packages/x86_64/
-https://packages.wolfi.dev/os
-```
-
-The public key is pre-installed in `/etc/apk/keys/`. Run `apk update` to sync.
-
-To use from a non-Silex Alpine container, add the repo and key manually:
+To use from a non-Silex Alpine or Wolfi container:
 
 ```sh
 wget -O /etc/apk/keys/silex-packages.rsa.pub \
@@ -36,97 +32,61 @@ echo "https://richarah.github.io/silex-packages/x86_64/" \
 apk update
 ```
 
+Replace `x86_64` with `aarch64` as appropriate.
+
 ---
 
-## Package list
+## How it works
 
-See `packages.list` for the full list with upstream URLs and version pins.
+The pipeline runs inside a `debian:bookworm` container using only standard
+Debian tools (`apt-get`, `dpkg-source`, `dpkg-deb`, `clang`, `mold`, etc.).
+No abuild, no Alpine toolchain, no APKBUILDs.
 
-Packages are split into three build tiers:
+1. **resolve-deps.sh** — computes the transitive dependency closure of
+   `config/seeds.list` using `apt-cache depends --recurse`. Packages in
+   `config/skip.list` are excluded.
 
-- **Tier 1** — built immediately, most common in Dockerfiles (libssl, zlib, libcurl, libpq, etc.)
-- **Tier 2** — next: graphics, boost, protobuf, gRPC, extra network libs
-- **Tier 3** — on request: audio, geo, niche
+2. **classify.sh** — for each package in the closure, downloads the `.deb`
+   and inspects its file list. Packages containing versioned `.so.N` files
+   (real shared libraries) are classified as `recompile`; everything else as
+   `repack`. Override lists in `config/` take priority.
+
+3. **repack.sh** — downloads the Debian binary `.deb`, extracts the file tree
+   with `dpkg-deb -x`, converts the Debian control metadata to `.PKGINFO`
+   format via `mkpkginfo.sh`, and assembles an unsigned `.apk` with `mkapk.sh`.
+
+4. **recompile.sh** — fetches the Debian source package, unpacks it with
+   `dpkg-source`, auto-detects the build system (autoconf / cmake / meson /
+   dpkg-buildpackage), builds with Silex CFLAGS, installs to a staging
+   directory, strips binaries, generates `.PKGINFO` from `apt-cache show`, and
+   assembles an unsigned `.apk`.
+
+5. **index.sh** — runs `apk index --allow-untrusted` on all `.apk` files to
+   generate `APKINDEX.tar.gz`, then signs the index with `sign.sh`.
+
+Individual `.apk` files are **unsigned**. Security is provided by the signed
+`APKINDEX.tar.gz`: apk verifies each downloaded package's checksum against
+the trusted index.
 
 ---
 
 ## Adding a package
 
-1. Create `aports/<pkgname>/APKBUILD` following the template below.
-2. Add an entry to `packages.list`.
-3. Run `scripts/gen-checksums.sh <pkgname>` to populate `sha512sums`.
-4. Commit and push. CI picks it up automatically.
+To add a package to the repository:
 
-### APKBUILD template
+1. Add its Debian package name to `config/seeds.list`.
+2. If `classify.sh` would misclassify it, add it to
+   `config/recompile-override.list` or `config/repack-override.list`.
+3. Push. CI rebuilds the full closure automatically.
 
-```sh
-# Maintainer: silex-ci <ci@silex>
-pkgname=example
-pkgver=1.0.0
-pkgrel=0
-pkgdesc="Short description"
-url="https://example.com"
-arch="x86_64 aarch64"
-license="MIT"
-makedepends=""
-subpackages="$pkgname-dev"
-source="https://example.com/example-$pkgver.tar.gz"
-sha512sums="SKIP"
+To exclude a package from the closure (e.g. it is already in the base image):
 
-build() {
-    cd "$builddir"
-    ./configure --prefix=/usr
-    make -j$JOBS
-}
+1. Add its name to `config/skip.list`.
 
-package() {
-    cd "$builddir"
-    make install DESTDIR="$pkgdir"
-}
-```
+Classification overrides:
 
-Rules:
-- `pkgrel=0` on initial build; increment for rebuilds of the same upstream version.
-- Always set `arch="x86_64 aarch64"`.
-- Always use `$JOBS` for parallel make.
-- Use cmake `-G Ninja` or meson where upstream supports it.
-- Don't patch unless necessary. Document every patch.
-- `options="!check"` if tests require network or are flaky in containers.
-- Pass `CC`, `CXX`, `CFLAGS`, `CXXFLAGS`, `LDFLAGS` explicitly to autotools.
-  cmake and meson pick them up from the environment automatically.
-
-**provides= rules**
-- `provides=` must not include the package's own name. abuild's validate_provides()
-  rejects it. List only virtual/compat names that other packages depend on.
-
-**subpackages= rules**
-- Do not add `$pkgname-static` to `subpackages=`. `default_dev()` moves all `.a` files
-  to the `-dev` subpackage, leaving nothing for `default_static()` to claim. The build
-  will fail with `cd: can't cd to $subpkgdir`. Static libs are available from `-dev`.
-
-**cmake packages**
-- Always `cd "$builddir"` at the top of both `build()` and `package()`. Each abuild
-  function runs in `$srcdir`, not `$builddir`.
-- Always pass `-DCMAKE_INSTALL_LIBDIR=lib`. On x86_64, cmake defaults to `lib64`; abuild
-  rejects files under `/usr/lib64`.
-- If CMakeLists.txt is not at the tarball root, pass `-S <subdir>` explicitly.
-  Example: zstd's CMakeLists.txt is at `build/cmake/`, not the root.
-
-**LTO + two-step make (bzip2 pattern)**
-- Some packages compile object files then re-link them in a second make invocation.
-  With `-flto=thin`, the object files are LLVM bitcode and the re-link fails with
-  `file format not recognized`. Strip LTO flags for the first pass:
-  ```sh
-  _cflags_nolto=$(printf '%s' "$CFLAGS" | sed 's/-flto[^ ]*//g')
-  make -f Makefile-libbz2_so CC="$CC" CFLAGS="$_cflags_nolto -fPIC"
-  make CC="$CC" CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS" -j$JOBS
-  ```
-
-**Source URL reliability**
-- Prefer GitHub Releases URLs: `https://github.com/<org>/<repo>/releases/download/...`
-  They do not move when new versions are released.
-- gmplib.org is unreliable (frequent timeouts). Use the GNU mirror:
-  `https://ftp.gnu.org/gnu/gmp/gmp-$pkgver.tar.xz`
+- `config/recompile-override.list` — force recompile even if no versioned `.so`
+- `config/repack-override.list` — force repack even if versioned `.so` present
 
 ---
 
@@ -135,77 +95,66 @@ Rules:
 ```
 silex-packages/
   x86_64/
-    APKINDEX.tar.gz
-    *.apk
+    APKINDEX.tar.gz        signed index
+    *.apk                  unsigned packages
   aarch64/
     APKINDEX.tar.gz
     *.apk
-  aports/
-    <pkgname>/APKBUILD
-    ...
   keys/
-    silex-packages.rsa.pub
+    silex-packages.rsa.pub public key (committed; shipped in Silex images)
+  config/
+    seeds.list             seed packages; dep closure is computed from these
+    skip.list              packages excluded from the closure
+    recompile-override.list force-recompile list
+    repack-override.list   force-repack list
+    cflags.conf            compiler flags (CC, CXX, CFLAGS, LDFLAGS, etc.)
   scripts/
-    build-all.sh      # build every package in dep order
-    build-one.sh      # build a single package
-    index.sh          # generate + sign APKINDEX
-    list-packages.sh  # list all package names
-    gen-checksums.sh  # populate sha512sums in APKBUILDs
-  abuild.conf         # shared compiler flags
-  packages.list       # name, version, URL, sha512
+    build-all.sh           full pipeline: resolve -> classify -> build -> index
+    build-one.sh           build a single package (recompile/repack/auto)
+    resolve-deps.sh        compute transitive dep closure from seeds.list
+    classify.sh            classify packages as recompile or repack
+    recompile.sh           fetch source, build with Silex flags, pack as .apk
+    repack.sh              download .deb, convert to .apk
+    mkpkginfo.sh           Debian control -> APK .PKGINFO
+    mkapk.sh               assemble .apk tar archive
+    index.sh               generate and sign APKINDEX.tar.gz
+    sign.sh                RSA-SHA1 signing (APKINDEX only)
+    verify.sh              post-build sanity checks
+  .github/workflows/
+    build.yml              CI: build all packages for x86_64 and aarch64
 ```
 
 ---
 
 ## Signing
 
-Keys are managed as GitHub Actions secrets:
+The `APKINDEX.tar.gz` is signed with an RSA-2048 private key. Individual
+`.apk` files are not signed. Keys are stored as GitHub Actions secrets:
 
 | Secret | Content |
 |--------|---------|
 | `SILEX_PKG_RSA` | RSA private key (PEM) |
 | `SILEX_PKG_RSA_PUB` | RSA public key (PEM) |
 
-To generate a new pair:
+The public key is committed to `keys/silex-packages.rsa.pub` and baked into
+Silex images at build time.
 
-```sh
-abuild-keygen -a -n
-# private key: ~/.abuild/silex-packages.rsa
-# public key:  /etc/apk/keys/silex-packages.rsa.pub
-```
-
-The public key is committed to `keys/` and shipped inside Silex images.
+See `SETUP.md` for key generation instructions.
 
 ---
 
 ## CI
 
-Two workflows:
+`build.yml` triggers on push to `config/**` or `scripts/**`, on a weekly
+schedule (Monday 04:00 UTC), and on `workflow_dispatch`.
 
-- **build.yml** — triggers on push to `aports/**`, `packages.list`, or `scripts/ci-build.sh`.
-  Builds all packages for both architectures, signs the index, commits back to main.
-- **build-single.yml** — `workflow_dispatch` with `package` and `arch` inputs.
-  Rebuilds one package without touching the rest.
+Jobs:
+- **x86_64** — runs on `ubuntu-latest` inside a `debian:bookworm` container;
+  builds all packages, verifies, uploads artifact.
+- **aarch64** — runs on `ubuntu-24.04-arm` inside `debian:bookworm`; same
+  steps with `march=armv8.2-a+crypto` substituted for `x86-64-v3`.
+- **deploy** — downloads both artifacts, commits `x86_64/`, `aarch64/`, and
+  `keys/` back to `main`, triggering a GitHub Pages deploy.
 
-Both run inside `cgr.dev/chainguard/wolfi-base:latest`. `scripts/ci-build.sh` builds
-abuild 3.15.0 from Alpine source (abuild is not in the Wolfi repo) and applies three
-patches before starting the build:
-
-1. `abuild-sign`: `sigtype=RSA` → `sigtype=RSA256` (SHA-256 signatures, required by Wolfi apk).
-2. `abuild`: `die "Failed to create index"` → `true` (Wolfi apk returns EKEYREJECTED on
-   intermediate index steps; our pipeline handles final indexing separately).
-3. `abuild` postcheck: uncompressed man pages auto-gzip instead of setting `e=1` (packages
-   that install uncompressed man pages are fixed in-place rather than rejected).
-
----
-
-## Version pinning
-
-| Image | Strategy |
-|-------|---------|
-| `silex:slim` | latest upstream stable |
-| `silex:compat-ubuntu-24.04` | exact Ubuntu 24.04 versions |
-| `silex:compat-debian-12` | exact Debian bookworm versions |
-
-Compat builds use the same APKBUILDs with different version pins.
-Track them in separate branches or subdirectories.
+apk-tools (static binary v2.14.4) is downloaded from the GitLab packages API
+at build time since it is not available in Debian bookworm.
