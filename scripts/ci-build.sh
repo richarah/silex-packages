@@ -49,14 +49,20 @@ rm -rf /tmp/abuild-${ABUILD_VER} /tmp/abuild.tar.gz
 sed -i 's/sigtype=RSA$/sigtype=RSA256/' /usr/bin/abuild-sign
 printf 'abuild-sign sigtype patched to RSA256\n'
 
+# Override update_abuildrepo_index with a no-op.
+# abuild calls this after each package build to update the repo index.
+# Wolfi's apk 2.14.x returns EKEYREJECTED (not bypassed by --allow-untrusted)
+# when verifying package signatures during `apk index`, regardless of key setup.
+# Our own pipeline handles indexing:
+#   - build-all.sh's _reindex_and_install: unsigned intermediate index (apk add --allow-untrusted)
+#   - scripts/index.sh: final signed APKINDEX via abuild-sign after all packages built
+# Shell redefines a function when the same name appears again; the last definition wins.
+printf '\nupdate_abuildrepo_index() { return 0; }\n' >> /usr/bin/abuild
+printf 'abuild update_abuildrepo_index overridden to no-op\n'
+
 # APK wrapper: prepends --allow-untrusted to every abuild-initiated apk call.
-# Needed for makedep resolution from our unsigned intermediate index (the index
-# created by build-all.sh's _reindex_and_install is not yet abuild-signed).
-# Wolfi's apk-tools has two signature error codes:
-#   ENOKEY      — key not found in /etc/apk/keys/ → bypassed by --allow-untrusted
-#   EKEYREJECTED — key found but EVP_VerifyFinal fails → NOT bypassed
-# Package signatures themselves are verified correctly because the pubkey IS in
-# /etc/apk/keys/; the wrapper is only needed for the unsigned APKINDEX.
+# Needed for makedep resolution from the unsigned intermediate APKINDEX created
+# by build-all.sh's _reindex_and_install.
 printf '#!/bin/sh\nexec /usr/bin/apk --allow-untrusted "$@"\n' > /usr/local/bin/apk-silex
 chmod +x /usr/local/bin/apk-silex
 
@@ -128,6 +134,7 @@ printf '=== abuild-sign sigtype ===\n'; grep 'sigtype=' /usr/bin/abuild-sign | h
 printf '=== apk wrapper ===\n'; cat /usr/local/bin/apk-silex
 printf '=== privkey location ===\n'; ls -la /root/.abuild/keys/silex-packages.rsa 2>/dev/null || printf 'NOT FOUND\n'
 printf '=== pubkey in /etc/apk/keys/ ===\n'; ls -la /etc/apk/keys/silex-packages.rsa.pub 2>/dev/null || printf 'NOT FOUND\n'
+printf '=== update_abuildrepo_index override ===\n'; tail -3 /usr/bin/abuild
 
 chmod +x scripts/build-all.sh scripts/build-one.sh scripts/index.sh
 if [ -n "${1:-}" ]; then
