@@ -31,7 +31,8 @@ mkdir -p /etc/apk/keys ~/.abuild
 printf '%s\n' "$SILEX_PKG_RSA"     > /etc/apk/keys/silex-packages.rsa
 printf '%s\n' "$SILEX_PKG_RSA_PUB" > /etc/apk/keys/silex-packages.rsa.pub
 cp /etc/apk/keys/silex-packages.rsa.pub keys/
-echo 'PACKAGER_PRIVKEY="/etc/apk/keys/silex-packages.rsa"' > ~/.abuild/abuild.conf
+printf 'PACKAGER="Silex CI <noreply@richarah.github.io>"\nPACKAGER_PRIVKEY="/etc/apk/keys/silex-packages.rsa"\n' \
+    > ~/.abuild/abuild.conf
 
 chmod +x scripts/build-all.sh scripts/build-one.sh scripts/index.sh
 if [ -n "${1:-}" ]; then
