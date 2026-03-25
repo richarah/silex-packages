@@ -112,6 +112,30 @@ addgroup -S abuild 2>/dev/null || groupadd -r abuild 2>/dev/null || true
 export CC="$CC_BIN"
 export CXX="$CXX_BIN"
 
+# Diagnostics: confirm environment before building.
+printf '=== apk version ===\n'; /usr/bin/apk --version
+printf '=== /etc/apk/keys/ ===\n'; ls /etc/apk/keys/
+printf '=== APK wrapper ===\n'; cat /usr/local/bin/apk-silex
+printf '=== grep APK in /etc/abuild.conf ===\n'; grep APK /etc/abuild.conf || true
+printf '=== APK env var ===\n'; printenv APK || printf "(unset)\n"
+# Sanity-test the wrapper: does apk index --allow-untrusted exit 0 on a
+# freshly-signed .apk?  Build a minimal test to detect Wolfi behavior.
+printf '=== abuild-sign from PATH ===\n'; command -v abuild-sign; abuild-sign --version 2>&1 || true
+printf '=== test: apk index --allow-untrusted on scratch ===\n'
+mkdir -p /tmp/pkgtest
+cd /tmp/pkgtest
+# Build a trivial signed apk with our key to test apk index --allow-untrusted
+apk_name="testpkg-0.0.1-r0.apk"
+tar czf "$apk_name" --files-from=/dev/null 2>/dev/null || true
+abuild-sign "$apk_name" 2>&1 || true
+printf 'exit: %s\n' "$?"
+/usr/bin/apk --allow-untrusted index -o /tmp/pkgtest/APKINDEX.tar.gz "$apk_name" 2>&1
+printf 'apk-index exit: %s\n' "$?"
+/usr/local/bin/apk-silex index -o /tmp/pkgtest/APKINDEX2.tar.gz "$apk_name" 2>&1
+printf 'apk-silex-index exit: %s\n' "$?"
+cd /work
+printf '=== end diagnostics ===\n'
+
 chmod +x scripts/build-all.sh scripts/build-one.sh scripts/index.sh
 if [ -n "${1:-}" ]; then
     scripts/build-one.sh "$1"
