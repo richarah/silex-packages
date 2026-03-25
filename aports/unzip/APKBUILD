@@ -16,9 +16,12 @@ options="!check"
 
 build() {
 	cd "$builddir"
+	# Let the configure step auto-detect flags, then remove -DNO_DIR which
+	# conflicts with -DHAVE_DIRENT_H on glibc (typedef redefinition in unix.c).
+	make -f unix/Makefile flags CC="$CC" LF2="$LDFLAGS -lbz2"
+	sed -i 's/ -DNO_DIR//g' flags
 	make -f unix/Makefile generic \
 		CC="$CC" \
-		CF="$CFLAGS -I. -DUNIX -DBZIP2_SUPPORT -DLARGE_FILE_SUPPORT -DUNICODE_SUPPORT" \
 		LF2="$LDFLAGS -lbz2"
 }
 

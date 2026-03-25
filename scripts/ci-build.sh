@@ -89,6 +89,23 @@ else
     printf 'abuild cleanup_makedepends: del patched to true\n'
 fi
 
+# Patch setup_makedepends to skip the '$APK add --virtual .makedepends-*' call.
+# With 25+ packages in a parallel wave, each abuild calls apk add --virtual to
+# create a tracking package; these concurrent apk calls contend for the DB flock
+# and cause EINTR even with our serialisation wrapper.  All real makedeps are
+# pre-installed by build-all.sh's _pre_install_deps before the wave starts, so
+# skipping the virtual-package creation is safe.  The del counterpart (above) is
+# already patched to true, so no tracking is needed at all.
+for _f in /usr/bin/abuild /usr/share/abuild/functions.sh; do
+    [ -f "$_f" ] || continue
+    sed -i 's/^[[:space:]]*\$APK add --virtual "\.makedepends-\$pkgname".*/\ttrue/' "$_f"
+done
+if grep -qE '\$APK add --virtual.*makedepends' /usr/bin/abuild /usr/share/abuild/functions.sh 2>/dev/null; then
+    printf 'WARNING: makedepends add patch did not fully apply\n' >&2
+else
+    printf 'abuild setup_makedepends: add patched to true\n'
+fi
+
 # APK wrapper: prepends --allow-untrusted and serializes calls via a mkdir lock.
 # --allow-untrusted: needed for makedep resolution from the unsigned intermediate
 #   APKINDEX created by build-all.sh's _reindex_and_install.
