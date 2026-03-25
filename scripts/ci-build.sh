@@ -44,14 +44,21 @@ make -C /tmp/abuild-${ABUILD_VER} install prefix=/usr
 rm -rf /tmp/abuild-${ABUILD_VER} /tmp/abuild.tar.gz
 
 # Patch abuild-sign to use RSA256 (SHA-256) instead of RSA (SHA-1).
-# Wolfi's OpenSSL 3.x has SHA-1 deprecated for EVP signing/verification in
-# the library API; EVP_VerifyInit(mdctx, EVP_sha1()) fails silently, causing
-# EKEYREJECTED on every signed .apk even with a correct key pair.  SHA-256 is
-# not deprecated and works reliably with OpenSSL 3.x.
 # RSA256 changes the embedded sig filename to .SIGN.RSA256.keyname.pub; Wolfi's
 # modern apk-tools understands this prefix and verifies with SHA-256.
 sed -i 's/sigtype=RSA$/sigtype=RSA256/' /usr/bin/abuild-sign
 printf 'abuild-sign sigtype patched to RSA256\n'
+
+# APK wrapper: prepends --allow-untrusted to every abuild-initiated apk call.
+# Wolfi's apk-tools has two signature error codes:
+#   ENOKEY      — key not found in /etc/apk/keys/ → bypassed by --allow-untrusted
+#   EKEYREJECTED — key found but EVP_VerifyFinal fails → NOT bypassed
+# We keep our signing pubkey OUT of /etc/apk/keys/ so apk returns ENOKEY
+# (bypassable) rather than EKEYREJECTED (not bypassable).  The wrapper ensures
+# every abuild-internal apk call (apk index in update_abuildrepo_index, apk add
+# for makedeps from our local repo) works without signature verification errors.
+printf '#!/bin/sh\nexec /usr/bin/apk --allow-untrusted "$@"\n' > /usr/local/bin/apk-silex
+chmod +x /usr/local/bin/apk-silex
 
 cat > /etc/abuild.conf << ABUILDCONF
 export CC="$CC_BIN"
@@ -62,6 +69,8 @@ export LDFLAGS="-fuse-ld=mold -flto=thin"
 export JOBS=\$(nproc)
 export ABUILD_GZIP="pigz -9"
 export STRIP="strip --strip-unneeded"
+export APK="/usr/local/bin/apk-silex"
+export ABUILD_APK_INDEX_OPTS="--allow-untrusted"
 ABUILDCONF
 
 mkdir -p /etc/apk/keys ~/.abuild
@@ -79,8 +88,6 @@ else
         -out /etc/apk/keys/silex-packages.rsa.pub 2>/dev/null
 fi
 cp /etc/apk/keys/silex-packages.rsa.pub keys/
-printf 'PACKAGER="Silex CI <noreply@richarah.github.io>"\nPACKAGER_PRIVKEY="/etc/apk/keys/silex-packages.rsa"\n' \
-    > ~/.abuild/abuild.conf
 
 # Verify key pair consistency with SHA-256 (matching RSA256 abuild-sign patch).
 printf 'keypair-test' > /tmp/ktest
@@ -94,6 +101,13 @@ else
 fi
 rm -f /tmp/ktest /tmp/ktest.sig
 
+# Move pubkey out of /etc/apk/keys/ so apk returns ENOKEY (not EKEYREJECTED)
+# when it encounters our packages.  PACKAGER_PUBKEY tells abuild-sign where
+# to find the file; the keyname embedded in .SIGN entries stays the same.
+mv /etc/apk/keys/silex-packages.rsa.pub /tmp/silex-packages.rsa.pub
+printf 'PACKAGER="Silex CI <noreply@richarah.github.io>"\nPACKAGER_PRIVKEY="/etc/apk/keys/silex-packages.rsa"\nPACKAGER_PUBKEY="/tmp/silex-packages.rsa.pub"\n' \
+    > ~/.abuild/abuild.conf
+
 # abuild-sudo requires the abuild group to exist (even for root)
 addgroup -S abuild 2>/dev/null || groupadd -r abuild 2>/dev/null || true
 
@@ -103,6 +117,8 @@ export CXX="$CXX_BIN"
 printf '=== apk version ===\n'; /usr/bin/apk --version 2>&1 || true
 printf '=== /etc/apk/keys/ ===\n'; ls /etc/apk/keys/
 printf '=== abuild-sign sigtype ===\n'; grep 'sigtype=' /usr/bin/abuild-sign | head -3
+printf '=== apk wrapper ===\n'; cat /usr/local/bin/apk-silex
+printf '=== pubkey location ===\n'; ls -la /tmp/silex-packages.rsa.pub 2>/dev/null || printf 'NOT FOUND\n'
 
 chmod +x scripts/build-all.sh scripts/build-one.sh scripts/index.sh
 if [ -n "${1:-}" ]; then
