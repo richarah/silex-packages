@@ -46,8 +46,14 @@ jobs:
 
       - name: Enable deb-src
         run: |
-          grep '^deb ' /etc/apt/sources.list \
-              | sed 's/^deb /deb-src /' >> /etc/apt/sources.list
+          # DEB822 format (debian:bookworm uses sources.list.d/debian.sources)
+          if [ -f /etc/apt/sources.list.d/debian.sources ]; then
+            sed -i 's/^Types: deb$/Types: deb deb-src/' \
+                /etc/apt/sources.list.d/debian.sources
+          elif [ -f /etc/apt/sources.list ]; then
+            grep '^deb ' /etc/apt/sources.list \
+                | sed 's/^deb /deb-src /' >> /etc/apt/sources.list
+          fi
           apt-get update -qq
 
       - name: Make scripts executable
@@ -104,8 +110,13 @@ jobs:
 
       - name: Enable deb-src
         run: |
-          grep '^deb ' /etc/apt/sources.list \
-              | sed 's/^deb /deb-src /' >> /etc/apt/sources.list
+          if [ -f /etc/apt/sources.list.d/debian.sources ]; then
+            sed -i 's/^Types: deb$/Types: deb deb-src/' \
+                /etc/apt/sources.list.d/debian.sources
+          elif [ -f /etc/apt/sources.list ]; then
+            grep '^deb ' /etc/apt/sources.list \
+                | sed 's/^deb /deb-src /' >> /etc/apt/sources.list
+          fi
           apt-get update -qq
 
       - name: Override march for aarch64

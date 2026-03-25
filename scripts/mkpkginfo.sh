@@ -56,6 +56,8 @@ parse_deps() {
         dep=$(printf '%s' "$dep" | sed 's/([^)]*)//g')           # drop version
         dep=$(printf '%s' "$dep" | sed 's/\[[^]]*\]//g')         # drop arch
         dep=$(printf '%s' "$dep" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+        # Skip Debian build-system substitution variables (${shlibs:Depends} etc.)
+        case "$dep" in '${'*) continue ;; esac
         [ -n "$dep" ] && printf 'depend = %s\n' "$dep"
     done
 }
