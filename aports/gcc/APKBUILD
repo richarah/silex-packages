@@ -21,7 +21,7 @@ makedepends="
 # gfortran: Fortran frontend + libgfortran + libquadmath
 # g++:      C++ frontend + libstdc++
 subpackages="gfortran:fortran g++:cxx"
-provides="gcc g++ gfortran cpp gcc-12 g++-12"
+provides="g++ gfortran cpp gcc-12 g++-12"
 source="https://ftp.gnu.org/gnu/gcc/gcc-$pkgver/gcc-$pkgver.tar.xz"
 sha512sums="932bdef0cda94bacedf452ab17f103c0cb511ff2cec55e9112fc0328cbf1d803b42595728ea7b200e0a057c03e85626f937012e49a7515bc5dd256b2bf4bc396  gcc-14.2.0.tar.xz"
 options="!check"
