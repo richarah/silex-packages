@@ -7,7 +7,7 @@ url="https://www.sqlite.org/"
 arch="x86_64 aarch64"
 license="blessing"
 makedepends="zlib-dev readline-dev"
-subpackages="$pkgname-dev $pkgname-static"
+subpackages="$pkgname-dev"
 # sqlite version encoding: 3.48.0 -> 3480000
 _ver=3480000
 builddir="$srcdir/sqlite-autoconf-$_ver"
