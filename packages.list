@@ -79,3 +79,71 @@ openssh-client  9.9p1       https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable
 gcc             14.2.0      https://ftp.gnu.org/gnu/gcc/gcc-14.2.0/gcc-14.2.0.tar.xz                                        SKIP
 python3         3.13.2      https://www.python.org/ftp/python/3.13.2/Python-3.13.2.tar.xz                                   SKIP
 nodejs          22.13.1     https://nodejs.org/dist/v22.13.1/node-v22.13.1.tar.gz                                            SKIP
+
+# --- Tier 2: Networking ---
+libpcap         1.10.5      https://www.tcpdump.org/release/libpcap-1.10.5.tar.gz                                                SKIP
+libnl           3.11.0      https://github.com/thom311/libnl/releases/download/libnl3_11_0/libnl-3.11.0.tar.gz                  SKIP
+cyrus-sasl      2.1.28      https://github.com/cyrusimap/cyrus-sasl/releases/download/cyrus-sasl-2.1.28/cyrus-sasl-2.1.28.tar.gz SKIP
+openldap        2.6.9       https://www.openldap.org/software/download/OpenLDAP/openldap-release/openldap-2.6.9.tgz              SKIP
+
+# --- Tier 2: Graphics / media ---
+ffmpeg          7.1         https://ffmpeg.org/releases/ffmpeg-7.1.tar.xz                                                        SKIP
+freetype        2.13.3      https://downloads.sourceforge.net/freetype/freetype-2.13.3.tar.xz                                    SKIP
+fontconfig      2.15.0      https://www.freedesktop.org/software/fontconfig/release/fontconfig-2.15.0.tar.xz                     SKIP
+harfbuzz        10.2.0      https://github.com/harfbuzz/harfbuzz/releases/download/10.2.0/harfbuzz-10.2.0.tar.xz                 SKIP
+pixman          0.44.2      https://www.cairographics.org/releases/pixman-0.44.2.tar.gz                                          SKIP
+cairo           1.18.2      https://www.cairographics.org/releases/cairo-1.18.2.tar.xz                                           SKIP
+pango           1.55.0      https://download.gnome.org/sources/pango/1.55/pango-1.55.0.tar.xz                                    SKIP
+
+# --- Tier 2: X11 (headless) ---
+libx11          1.8.10      https://xorg.freedesktop.org/releases/individual/lib/libX11-1.8.10.tar.xz                            SKIP
+libxcb          1.17.0      https://xorg.freedesktop.org/releases/individual/lib/libxcb-1.17.0.tar.xz                            SKIP
+libxext         1.3.6       https://xorg.freedesktop.org/releases/individual/lib/libXext-1.3.6.tar.xz                            SKIP
+
+# --- Tier 2: Boost ---
+boost           1.87.0      https://github.com/boostorg/boost/releases/download/boost-1.87.0/boost-1.87.0-cmake.tar.xz          SKIP
+
+# --- Tier 2: Protobuf / gRPC ---
+abseil-cpp      20240722.0  https://github.com/abseil/abseil-cpp/releases/download/20240722.0/abseil-cpp-20240722.0.tar.gz       SKIP
+protobuf        29.3        https://github.com/protocolbuffers/protobuf/releases/download/v29.3/protobuf-29.3.tar.gz             SKIP
+grpc            1.70.0      https://github.com/grpc/grpc/releases/download/v1.70.0/grpc-1.70.0.tar.gz                           SKIP
+
+# --- Tier 2: Event loops / IPC ---
+libevent        2.1.12      https://github.com/libevent/libevent/releases/download/release-2.1.12-stable/libevent-2.1.12-stable.tar.gz SKIP
+libev           4.33        http://dist.schmorp.de/libev/Attic/libev-4.33.tar.bz2                                                SKIP
+libuv           1.50.0      https://dist.libuv.org/dist/v1.50.0/libuv-v1.50.0.tar.gz                                            SKIP
+zeromq          4.3.5       https://github.com/zeromq/libzmq/releases/download/v4.3.5/zeromq-4.3.5.tar.gz                       SKIP
+hiredis         1.2.0       https://github.com/redis/hiredis/archive/refs/tags/v1.2.0.tar.gz                                     SKIP
+
+# --- Tier 2: Compression (extra) ---
+snappy          1.2.1       https://github.com/google/snappy/archive/refs/tags/1.2.1.tar.gz                                      SKIP
+lz4             1.10.0      https://github.com/lz4/lz4/releases/download/v1.10.0/lz4-1.10.0.tar.gz                              SKIP
+
+# --- Tier 2: Misc ---
+icu             76.1        https://github.com/unicode-org/icu/releases/download/release-76-1/icu4c-76_1-src.tgz                 SKIP
+oniguruma       6.9.9       https://github.com/kkos/oniguruma/releases/download/v6.9.9/onig-6.9.9.tar.gz                        SKIP
+
+# --- Tier 3: Crypto ---
+libsodium       1.0.20      https://download.libsodium.org/libsodium/releases/libsodium-1.0.20.tar.gz                            SKIP
+libargon2       20190702    https://github.com/P-H-C/phc-winner-argon2/archive/refs/tags/20190702.tar.gz                         SKIP
+nettle          3.10.1      https://ftp.gnu.org/gnu/nettle/nettle-3.10.1.tar.gz                                                  SKIP
+
+# --- Tier 3: Audio ---
+libogg          1.3.5       https://downloads.xiph.org/releases/ogg/libogg-1.3.5.tar.xz                                         SKIP
+opus            1.5.2       https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz                                           SKIP
+libvorbis       1.3.7       https://downloads.xiph.org/releases/vorbis/libvorbis-1.3.7.tar.xz                                    SKIP
+alsa-lib        1.2.13      https://www.alsa-project.org/files/pub/lib/alsa-lib-1.2.13.tar.bz2                                   SKIP
+libsndfile      1.2.2       https://github.com/libsndfile/libsndfile/releases/download/1.2.2/libsndfile-1.2.2.tar.xz             SKIP
+
+# --- Tier 3: Languages ---
+ruby            3.4.2       https://cache.ruby-lang.org/pub/ruby/3.4/ruby-3.4.2.tar.xz                                          SKIP
+perl            5.40.0      https://www.cpan.org/src/5.0/perl-5.40.0.tar.xz                                                      SKIP
+
+# --- Tier 3: Geospatial ---
+proj            9.5.1       https://download.osgeo.org/proj/proj-9.5.1.tar.gz                                                    SKIP
+geos            3.13.1      https://download.osgeo.org/geos/geos-3.13.1.tar.bz2                                                  SKIP
+gdal            3.10.1      https://github.com/OSGeo/gdal/releases/download/v3.10.1/gdal-3.10.1.tar.gz                          SKIP
+
+# --- Tier 3: Misc ---
+libusb          1.0.27      https://github.com/libusb/libusb/releases/download/v1.0.27/libusb-1.0.27.tar.bz2                    SKIP
+libmicrohttpd   1.0.1       https://ftp.gnu.org/gnu/libmicrohttpd/libmicrohttpd-1.0.1.tar.gz                                     SKIP

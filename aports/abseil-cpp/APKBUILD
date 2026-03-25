@@ -1,0 +1,35 @@
+# Maintainer: silex-ci <ci@silex>
+pkgname=abseil-cpp
+pkgver=20240722.0
+pkgrel=0
+pkgdesc="Abseil common C++ libraries"
+url="https://abseil.io/"
+arch="x86_64 aarch64"
+license="Apache-2.0"
+makedepends="cmake ninja"
+subpackages="$pkgname-dev $pkgname-static"
+provides="libabsl-dev"
+source="https://github.com/abseil/abseil-cpp/releases/download/$pkgver/abseil-cpp-$pkgver.tar.gz"
+sha512sums=""
+options="!check"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_C_COMPILER="$CC" \
+		-DCMAKE_CXX_COMPILER="$CXX" \
+		-DCMAKE_C_FLAGS="$CFLAGS" \
+		-DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+		-DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+		-DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" \
+		-DABSL_BUILD_TESTING=OFF \
+		-DABSL_PROPAGATE_CXX_STD=ON \
+		-DCMAKE_CXX_STANDARD=17 \
+		-DBUILD_SHARED_LIBS=ON
+	cmake --build build -j$JOBS
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}

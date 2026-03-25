@@ -1,0 +1,29 @@
+# Maintainer: silex-ci <ci@silex>
+pkgname=fontconfig
+pkgver=2.15.0
+pkgrel=0
+pkgdesc="Library for font customization and configuration"
+url="https://www.freedesktop.org/wiki/Software/fontconfig/"
+arch="x86_64 aarch64"
+license="MIT"
+makedepends="freetype-dev expat-dev gperf"
+subpackages="$pkgname-dev $pkgname-static"
+provides="libfontconfig1-dev libfontconfig1 fontconfig"
+source="https://www.freedesktop.org/software/fontconfig/release/fontconfig-$pkgver.tar.xz"
+sha512sums=""
+options="!check"
+
+build() {
+	cd "$builddir"
+	meson setup build \
+		--prefix=/usr \
+		--buildtype=release \
+		-Ddoc=disabled \
+		-Dtests=disabled \
+		-Dtools=enabled
+	ninja -C build -j$JOBS
+}
+
+package() {
+	DESTDIR="$pkgdir" ninja -C "$builddir/build" install
+}

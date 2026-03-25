@@ -1,0 +1,33 @@
+# Maintainer: silex-ci <ci@silex>
+pkgname=geos
+pkgver=3.13.1
+pkgrel=0
+pkgdesc="Geometry Engine Open Source"
+url="https://libgeos.org/"
+arch="x86_64 aarch64"
+license="LGPL-2.1-or-later"
+makedepends="cmake ninja"
+subpackages="$pkgname-dev $pkgname-static"
+provides="libgeos-dev libgeos3.11.1"
+source="https://download.osgeo.org/geos/geos-$pkgver.tar.bz2"
+sha512sums=""
+options="!check"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_C_COMPILER="$CC" \
+		-DCMAKE_CXX_COMPILER="$CXX" \
+		-DCMAKE_C_FLAGS="$CFLAGS" \
+		-DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+		-DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+		-DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" \
+		-DBUILD_SHARED_LIBS=ON \
+		-DBUILD_TESTING=OFF
+	cmake --build build -j$JOBS
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}

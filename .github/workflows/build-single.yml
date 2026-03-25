@@ -44,6 +44,13 @@ jobs:
           mkdir -p ~/.abuild
           echo 'PACKAGER_PRIVKEY="/etc/apk/keys/silex-packages.rsa"' > ~/.abuild/abuild.conf
 
+      - name: Verify provides=
+        run: |
+          if ! grep -q '^provides=' "aports/${{ inputs.package }}/APKBUILD"; then
+            echo "ERROR: aports/${{ inputs.package }}/APKBUILD missing provides="
+            exit 1
+          fi
+
       - name: Build ${{ inputs.package }}
         run: |
           chmod +x scripts/build-one.sh
@@ -87,6 +94,13 @@ jobs:
           echo "${{ secrets.SILEX_PKG_RSA_PUB }}" > /etc/apk/keys/silex-packages.rsa.pub
           mkdir -p ~/.abuild
           echo 'PACKAGER_PRIVKEY="/etc/apk/keys/silex-packages.rsa"' > ~/.abuild/abuild.conf
+
+      - name: Verify provides=
+        run: |
+          if ! grep -q '^provides=' "aports/${{ inputs.package }}/APKBUILD"; then
+            echo "ERROR: aports/${{ inputs.package }}/APKBUILD missing provides="
+            exit 1
+          fi
 
       - name: Build ${{ inputs.package }}
         run: |

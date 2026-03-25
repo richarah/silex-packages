@@ -198,17 +198,31 @@ apk fetches from:
 
 ## 9. Test from a Silex container
 
+The silex:slim image has the silex-packages public key and repository
+URL baked in. No manual key or repo setup needed:
+
 ```sh
-docker run --rm -it silex:slim sh -c '
-    cp /path/to/keys/*.rsa.pub /etc/apk/keys/
-    echo "https://richarah.github.io/silex-packages/x86_64/" >> /etc/apk/repositories
+docker run --rm -it ghcr.io/richarah/silex:slim sh -c '
     apk update
     apk add libssl-dev
 '
 ```
 
-If `apk add libssl-dev` resolves to `openssl-dev` (via provides=)
+If `apk add libssl-dev` resolves to `openssl-dev` (via `provides=`)
 and installs successfully, the whole pipeline works.
+
+If testing a locally built image before publishing:
+
+```sh
+docker run --rm -it silex:slim sh -c '
+    apk update
+    apk add libssl-dev
+'
+```
+
+The key and repo are already in the image at:
+- `/etc/apk/keys/-69c32c6d.rsa.pub`
+- `/etc/apk/repositories` (silex-packages listed before Wolfi)
 
 ## 10. CI handles this from now on
 
@@ -220,20 +234,15 @@ above are only for:
 - Debugging a failing package
 - Testing before pushing
 
-## 11. chown
-
-chown -R builder:builder /home/builder/.abuild
-```
-
-And add a warning somewhere near the top:
-```
 ## Warning: do not chown /work inside the container
 
 The /work mount is your host directory. If you chown it to the
 builder user inside the container, your host user loses write
 access. If this happens:
 
-    docker run --rm -v "$PWD:/work" alpine:3.21 chown -R $(id -u):$(id -g) /work
+```sh
+docker run --rm -v "$PWD:/work" alpine:3.21 chown -R $(id -u):$(id -g) /work
+```
 
 Only chown /home/builder/.abuild. abuild-sudo handles the rest.
 
@@ -263,16 +272,13 @@ Replace YOUR_COMMAND_HERE with whatever you need:
 - `cd /work && scripts/build-all.sh` — build everything
 - `cd /work && scripts/build-one.sh openssl` — build one by name
 
-## Why Alpine containers, not Debian
+## Why Alpine containers for local builds
 
 abuild is an Alpine tool. It's not in Debian, Ubuntu, Wolfi, or
-anywhere else. You need an Alpine container to run it.
+anywhere else. For local builds you need an Alpine container.
 
-The packages you build inside Alpine are linked against musl.
-That's fine for now — the checksumming and packaging format is
-what matters. When silex-packages eventually builds inside
-silex:slim (dog-fooding), abuild will need to be installed from
-source inside the glibc environment. That's a future problem.
-
-For now: Alpine container for building, GitHub Pages for hosting,
-Silex for consuming. It works.
+CI is different: the build.yml workflow runs inside
+`ghcr.io/richarah/silex:slim`, which installs abuild from the Wolfi
+repo at job start. That's the dog-food path. Local development still
+uses Alpine containers because it's simpler and doesn't require a
+published silex:slim image.

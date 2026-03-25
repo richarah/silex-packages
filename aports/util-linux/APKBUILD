@@ -19,6 +19,7 @@ subpackages="
 	libblkid:blkid
 	libmount:mount
 	"
+provides="uuid-dev libblkid-dev libmount-dev libuuid1 libsmartcols-dev"
 source="https://www.kernel.org/pub/linux/utils/util-linux/v${pkgver%.*}/util-linux-$pkgver.tar.xz"
 sha512sums="ffe20b915a518a150401d429b0338bc7022190e4ca0ef91a6d9eea345db8c1e11ad01784163b8fcf978506f3f5cad473f29d5d4ef93a4c66a5ae0ebd9fb0c8f2  util-linux-2.40.2.tar.xz"
 options="!check"

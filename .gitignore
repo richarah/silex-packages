@@ -1,10 +1,10 @@
-keys/*
-!keys/*.rsa.pub
+# Signing keys — track public, never private
 keys/*.rsa
+!keys/*.rsa.pub
 *.rsa
+!*.rsa.pub
 
-
-# Built packages (CI commits these, don't track locally)
+# Built packages — CI commits these, do not track locally
 x86_64/*.apk
 aarch64/*.apk
 x86_64/APKINDEX.tar.gz
@@ -15,41 +15,12 @@ aarch64/APKINDEX.tar.gz
 */pkg/
 tmp/
 
-# Private key (NEVER commit)
-*.rsa
-!*.rsa.pub
-
-# abuild config with key path
-/root/.abuild/
-
-# Source tarballs (downloaded during build)
+# Source tarballs downloaded during build
 *.tar.gz
 *.tar.xz
 *.tar.bz2
-
-# OS junk
-.DS_Store# Built packages (CI commits these, don't track locally)
-x86_64/*.apk
-aarch64/*.apk
-x86_64/APKINDEX.tar.gz
-aarch64/APKINDEX.tar.gz
-
-# abuild working directories
-*/src/
-*/pkg/
-tmp/
-
-# Private key (NEVER commit)
-*.rsa
-!*.rsa.pub
-
-# abuild config with key path
-/root/.abuild/
-
-# Source tarballs (downloaded during build)
-*.tar.gz
-*.tar.xz
-*.tar.bz2
+*.tgz
 
 # OS junk
 .DS_Store
+Thumbs.db

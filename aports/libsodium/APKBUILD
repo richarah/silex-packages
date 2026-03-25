@@ -1,0 +1,31 @@
+# Maintainer: silex-ci <ci@silex>
+pkgname=libsodium
+pkgver=1.0.20
+pkgrel=0
+pkgdesc="Modern, portable, easy to use crypto library"
+url="https://libsodium.org/"
+arch="x86_64 aarch64"
+license="ISC"
+makedepends=""
+subpackages="$pkgname-dev $pkgname-static"
+provides="libsodium-dev libsodium23"
+source="https://download.libsodium.org/libsodium/releases/libsodium-$pkgver.tar.gz"
+sha512sums=""
+options="!check"
+
+build() {
+	cd "$builddir"
+	./configure \
+		--prefix=/usr \
+		--enable-shared \
+		--disable-static \
+		CC="$CC" \
+		CFLAGS="$CFLAGS" \
+		LDFLAGS="$LDFLAGS"
+	make -j$JOBS
+}
+
+package() {
+	cd "$builddir"
+	make install DESTDIR="$pkgdir"
+}

@@ -1,0 +1,32 @@
+# Maintainer: silex-ci <ci@silex>
+pkgname=libxcb
+pkgver=1.17.0
+pkgrel=0
+pkgdesc="X protocol C-language Binding"
+url="https://xcb.freedesktop.org/"
+arch="x86_64 aarch64"
+license="MIT"
+makedepends="xorgproto libxau-dev libxdmcp-dev python3 xcb-proto"
+subpackages="$pkgname-dev $pkgname-static"
+provides="libxcb1-dev libxcb1"
+source="https://xorg.freedesktop.org/releases/individual/lib/libxcb-$pkgver.tar.xz"
+sha512sums=""
+options="!check"
+
+build() {
+	cd "$builddir"
+	./configure \
+		--prefix=/usr \
+		--sysconfdir=/etc \
+		--without-doxygen \
+		--disable-devel-docs \
+		CC="$CC" \
+		CFLAGS="$CFLAGS" \
+		LDFLAGS="$LDFLAGS"
+	make -j$JOBS
+}
+
+package() {
+	cd "$builddir"
+	make install DESTDIR="$pkgdir"
+}

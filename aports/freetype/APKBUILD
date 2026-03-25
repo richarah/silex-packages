@@ -1,0 +1,33 @@
+# Maintainer: silex-ci <ci@silex>
+pkgname=freetype
+pkgver=2.13.3
+pkgrel=0
+pkgdesc="FreeType font rendering library"
+url="https://freetype.org/"
+arch="x86_64 aarch64"
+license="FTL OR GPL-2.0-or-later"
+makedepends="cmake ninja zlib-dev bzip2-dev libpng-dev"
+subpackages="$pkgname-dev $pkgname-static"
+provides="libfreetype-dev libfreetype6-dev libfreetype6"
+source="https://downloads.sourceforge.net/freetype/freetype-$pkgver.tar.xz"
+sha512sums=""
+options="!check"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_C_COMPILER="$CC" \
+		-DCMAKE_C_FLAGS="$CFLAGS" \
+		-DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+		-DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" \
+		-DFT_DISABLE_BROTLI=ON \
+		-DFT_REQUIRE_ZLIB=ON \
+		-DFT_REQUIRE_PNG=ON \
+		-DFT_REQUIRE_BZIP2=ON
+	cmake --build build -j$JOBS
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}

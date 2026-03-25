@@ -8,6 +8,7 @@ arch="x86_64 aarch64"
 license="0BSD AND LGPL-2.1-or-later AND GPL-2.0-or-later"
 makedepends=""
 subpackages="$pkgname-dev $pkgname-static $pkgname-libs"
+provides="liblzma-dev liblzma5 xz-utils"
 source="https://github.com/tukaani-project/xz/releases/download/v$pkgver/xz-$pkgver.tar.xz"
 sha512sums="1449f3b55819fb7f46855e550e367e96d658f523531fc2a65c2e1f1b847de86bf2fa50f3909f42cbff94a56b0cf8b0b5cd278097622da980119548f61e245f0a  xz-5.6.3.tar.xz"
 

@@ -1,0 +1,36 @@
+# Maintainer: silex-ci <ci@silex>
+pkgname=gdal
+pkgver=3.10.2
+pkgrel=0
+pkgdesc="Geospatial Data Abstraction Library"
+url="https://gdal.org/"
+arch="x86_64 aarch64"
+license="MIT"
+makedepends="cmake ninja proj-dev geos-dev sqlite-dev curl-dev zlib-dev xz-dev tiff-dev libpng-dev libjpeg-turbo-dev"
+subpackages="$pkgname-dev $pkgname-static"
+provides="libgdal-dev libgdal32"
+source="https://github.com/OSGeo/gdal/releases/download/v$pkgver/gdal-$pkgver.tar.gz"
+sha512sums=""
+options="!check"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_C_COMPILER="$CC" \
+		-DCMAKE_CXX_COMPILER="$CXX" \
+		-DCMAKE_C_FLAGS="$CFLAGS" \
+		-DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+		-DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+		-DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" \
+		-DBUILD_SHARED_LIBS=ON \
+		-DGDAL_USE_INTERNAL_LIBS=OFF \
+		-DBUILD_TESTING=OFF \
+		-DGDAL_BUILD_OPTIONAL_DRIVERS=OFF \
+		-DOGR_BUILD_OPTIONAL_DRIVERS=OFF
+	cmake --build build -j$JOBS
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}

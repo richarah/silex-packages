@@ -1,0 +1,18 @@
+silex-packages signing key
+==========================
+
+This directory holds the RSA public key used to sign APKINDEX.tar.gz.
+
+The private key lives in GitHub Actions secrets (SILEX_PKG_RSA).
+The public key (SILEX_PKG_RSA_PUB) is written here by CI and committed.
+
+To generate a new key pair (run once, store private key in repo secrets):
+
+    abuild-keygen -a -n -i
+
+The -i flag installs the public key into /etc/apk/keys/ automatically.
+Copy the private key to SILEX_PKG_RSA and the public key to SILEX_PKG_RSA_PUB
+in the repository's Actions secrets.
+
+The Silex base image ships with silex-packages.rsa.pub pre-installed in
+/etc/apk/keys/ so that `apk update` trusts this repository.

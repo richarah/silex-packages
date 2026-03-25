@@ -11,6 +11,7 @@ subpackages="$pkgname-dev $pkgname-static"
 # sqlite version encoding: 3.48.0 -> 3480000
 _ver=3480000
 builddir="$srcdir/sqlite-autoconf-$_ver"
+provides="libsqlite3-dev libsqlite3-0 sqlite3"
 source="https://www.sqlite.org/2025/sqlite-autoconf-$_ver.tar.gz"
 sha512sums="c607cbc58cdef6910a87ddb6ae8aeabdab2769d6cc33aad04f31fc428ecc5a8eaf19f5d3a3590591aae2c920b106a684891d38efef712f91631602245f6f4d3d  sqlite-autoconf-3480000.tar.gz"
 options="!check"

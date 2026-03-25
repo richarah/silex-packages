@@ -23,6 +23,7 @@ makedepends="
 # curl-static: libcurl.a
 subpackages="libcurl:libs curl-dev:dev curl-static:static"
 builddir="$srcdir/curl-$pkgver"
+provides="libcurl4-openssl-dev libcurl4 curl libcurl-dev"
 source="https://github.com/curl/curl/releases/download/curl-${pkgver//./_}/curl-$pkgver.tar.xz"
 sha512sums="88915468fa1bb7256e3dd6c9d058ada6894faa1e3e7800c7d9bfee3e8be4081ae57e7f2bf260c5342b709499fc4302ddc2d7864e25bfa3300fa07f118a3de603  curl-8.12.1.tar.xz"
 options="!check"

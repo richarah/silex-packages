@@ -1,0 +1,32 @@
+# Maintainer: silex-ci <ci@silex>
+pkgname=libevent
+pkgver=2.1.12
+pkgrel=0
+pkgdesc="Event notification library"
+url="https://libevent.org/"
+arch="x86_64 aarch64"
+license="BSD-3-Clause"
+makedepends="cmake ninja openssl-dev"
+subpackages="$pkgname-dev $pkgname-static"
+provides="libevent-dev libevent-2.1-7"
+source="https://github.com/libevent/libevent/releases/download/release-$pkgver-stable/libevent-$pkgver-stable.tar.gz"
+sha512sums=""
+options="!check"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_C_COMPILER="$CC" \
+		-DCMAKE_C_FLAGS="$CFLAGS" \
+		-DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+		-DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" \
+		-DEVENT__DISABLE_TESTS=ON \
+		-DEVENT__DISABLE_SAMPLES=ON \
+		-DEVENT__DISABLE_BENCHMARK=ON
+	cmake --build build -j$JOBS
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}

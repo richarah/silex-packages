@@ -9,8 +9,19 @@ on:
   workflow_dispatch:
 
 jobs:
+  lint:
+    name: Lint APKBUILDs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify provides= present in all APKBUILDs
+        run: |
+          chmod +x scripts/verify-provides.sh
+          scripts/verify-provides.sh
+
   build-x86_64:
     name: x86_64
+    needs: lint
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/richarah/silex:slim
@@ -46,6 +57,7 @@ jobs:
 
   build-aarch64:
     name: aarch64
+    needs: lint
     runs-on: ubuntu-24.04-arm
     container:
       image: ghcr.io/richarah/silex:slim

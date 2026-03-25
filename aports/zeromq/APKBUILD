@@ -1,0 +1,37 @@
+# Maintainer: silex-ci <ci@silex>
+pkgname=zeromq
+pkgver=4.3.5
+pkgrel=0
+pkgdesc="High-performance asynchronous messaging library"
+url="https://zeromq.org/"
+arch="x86_64 aarch64"
+license="MPL-2.0"
+makedepends="cmake ninja openssl-dev"
+subpackages="$pkgname-dev $pkgname-static"
+provides="libzmq3-dev libzmq5"
+source="https://github.com/zeromq/libzmq/releases/download/v$pkgver/zeromq-$pkgver.tar.gz"
+sha512sums=""
+options="!check"
+
+build() {
+	cmake -B build -G Ninja \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_C_COMPILER="$CC" \
+		-DCMAKE_CXX_COMPILER="$CXX" \
+		-DCMAKE_C_FLAGS="$CFLAGS" \
+		-DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+		-DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+		-DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" \
+		-DBUILD_SHARED=ON \
+		-DBUILD_STATIC=OFF \
+		-DENABLE_DRAFTS=OFF \
+		-DWITH_TLS=ON \
+		-DWITH_LIBSODIUM=OFF \
+		-DZMQ_BUILD_TESTS=OFF
+	cmake --build build -j$JOBS
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+}

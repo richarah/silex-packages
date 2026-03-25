@@ -14,6 +14,7 @@ makedepends="
 	linux-headers
 	"
 subpackages="$pkgname-dev libpq:libpq"
+provides="libpq-dev libpq5 postgresql-server-dev-all"
 source="https://ftp.postgresql.org/pub/source/v$pkgver/postgresql-$pkgver.tar.gz"
 sha512sums="e98d3e0aaae09c4da74839e62cab0f93e0945c9a764188d5a32ee00f0c83fb512a1fab4286fb7ca64e5dbcbc5120db812ea9c24f047082c28a4be7916fcc3f20  postgresql-17.2.tar.gz"
 options="!check"

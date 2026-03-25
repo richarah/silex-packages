@@ -14,6 +14,7 @@ makedepends="
 	curl-dev
 	perl
 	"
+provides="git git-core"
 source="https://www.kernel.org/pub/software/scm/git/git-$pkgver.tar.xz"
 sha512sums="a54aa6c8f468534311fa5e8fe9a69d0ea87b18a97f94b62e20882ab431e422975883852cbce03b14c99fd0a7a5b41d15307fdf4f147b601ce9d925b484831e07  git-2.47.2.tar.xz"
 options="!check"
