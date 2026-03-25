@@ -18,15 +18,13 @@ apk update -q
 # compiles cleanly on Wolfi/glibc.
 apk add --no-cache gcc make pkgconf scdoc openssl openssl-dev zlib-dev wget clang mold pigz
 
-# Wolfi installs clang as clang-NN without an unversioned symlink.
-# Create /usr/bin/clang and /usr/bin/clang++ if missing.
-if ! command -v clang >/dev/null 2>&1; then
-    CLANG_BIN=$(ls /usr/bin/clang-[0-9]* 2>/dev/null | head -1)
-    [ -n "$CLANG_BIN" ] && ln -sf "$CLANG_BIN" /usr/bin/clang
-    CLANGPP_BIN=$(ls /usr/bin/clang++-[0-9]* 2>/dev/null | head -1)
-    [ -n "$CLANGPP_BIN" ] && ln -sf "$CLANGPP_BIN" /usr/bin/clang++
-    echo "clang symlink: /usr/bin/clang -> $CLANG_BIN" >&2
-fi
+# openssf-compiler-options (a Wolfi dep) wraps compiler binaries with a
+# hardening shim that breaks configure test programs.  Bypass it by
+# pointing /usr/bin/clang directly at the versioned binary.
+CLANG_BIN=$(ls /usr/bin/clang-[0-9]* 2>/dev/null | head -1)
+[ -n "$CLANG_BIN" ] && ln -sf "$CLANG_BIN" /usr/bin/clang
+CLANGPP_BIN=$(ls /usr/bin/clang++-[0-9]* 2>/dev/null | head -1)
+[ -n "$CLANGPP_BIN" ] && ln -sf "$CLANGPP_BIN" /usr/bin/clang++
 
 wget -q "https://github.com/alpinelinux/abuild/archive/refs/tags/${ABUILD_VER}.tar.gz" \
     -O /tmp/abuild.tar.gz
