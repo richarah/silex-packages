@@ -18,14 +18,18 @@ apk update -q
 # compiles cleanly on Wolfi/glibc.
 apk add --no-cache gcc make pkgconf scdoc openssl openssl-dev zlib-dev wget clang mold pigz
 
-# openssf-compiler-options (a Wolfi dep) wraps compiler binaries via
-# /usr/bin/clang → gcc-wrapper.  Its post-install hook re-creates the
-# symlink every time makedepends are installed, so a one-shot ln -sf
-# does not survive abuild's makedep step.  Instead, pin CC/CXX in
-# /etc/abuild.conf to the absolute versioned binary path (e.g.
-# /usr/bin/clang-22), which the hook never overwrites.
+# openssf-compiler-options wraps /usr/bin/clang → gcc-wrapper (adds linker
+# hardening flags that produce stderr, breaking configure tests).  Its
+# post-install hook re-creates the symlink on every makedep install, so
+# a one-shot ln -sf does not survive abuild's makedep step.
+# Fix: pin CC/CXX to the absolute versioned binary (e.g. /usr/bin/clang-22),
+# which the hook never overwrites.  Write abuild.conf directly to avoid
+# sed quoting ambiguity with double-quoted variable expansion in POSIX sh.
 CLANG_BIN=$(ls /usr/bin/clang-[0-9]* 2>/dev/null | head -1)
 CLANGPP_BIN=$(ls /usr/bin/clang++-[0-9]* 2>/dev/null | head -1)
+CC_BIN="${CLANG_BIN:-clang}"
+CXX_BIN="${CLANGPP_BIN:-clang++}"
+printf 'resolved CC=%s  CXX=%s\n' "$CC_BIN" "$CXX_BIN" >&2
 
 wget -q "https://github.com/alpinelinux/abuild/archive/refs/tags/${ABUILD_VER}.tar.gz" \
     -O /tmp/abuild.tar.gz
@@ -34,9 +38,18 @@ make -C /tmp/abuild-${ABUILD_VER} CC=gcc CFLAGS="-O2 -g -pedantic" prefix=/usr
 make -C /tmp/abuild-${ABUILD_VER} install prefix=/usr
 rm -rf /tmp/abuild-${ABUILD_VER} /tmp/abuild.tar.gz
 
-sed "s/-march=x86-64-v3/-march=$MARCH/" abuild.conf > /etc/abuild.conf
-[ -n "$CLANG_BIN"   ] && sed -i "s|export CC=\"clang\"|export CC=\"$CLANG_BIN\"|"     /etc/abuild.conf
-[ -n "$CLANGPP_BIN" ] && sed -i "s|export CXX=\"clang++\"|export CXX=\"$CLANGPP_BIN\"|" /etc/abuild.conf
+cat > /etc/abuild.conf << ABUILDCONF
+export CC="$CC_BIN"
+export CXX="$CXX_BIN"
+export CFLAGS="-O3 -march=$MARCH -flto=thin -fomit-frame-pointer"
+export CXXFLAGS="\$CFLAGS"
+export LDFLAGS="-fuse-ld=mold -flto=thin"
+export JOBS=\$(nproc)
+export ABUILD_GZIP="pigz -9"
+export STRIP="strip --strip-unneeded"
+ABUILDCONF
+echo "=== /etc/abuild.conf ===" >&2
+cat /etc/abuild.conf >&2
 
 mkdir -p /etc/apk/keys ~/.abuild
 printf '%s\n' "$SILEX_PKG_RSA"     > /etc/apk/keys/silex-packages.rsa
