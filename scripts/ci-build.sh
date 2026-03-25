@@ -79,7 +79,7 @@ else
         -out /tmp/silex-packages.rsa.pub 2>/dev/null
 fi
 cp /tmp/silex-packages.rsa.pub keys/
-printf 'PACKAGER="Silex CI <noreply@richarah.github.io>"\nPACKAGER_PRIVKEY="/etc/apk/keys/silex-packages.rsa"\n' \
+printf 'PACKAGER="Silex CI <noreply@richarah.github.io>"\nPACKAGER_PRIVKEY="/etc/apk/keys/silex-packages.rsa"\nPACKAGER_PUBKEY="/tmp/silex-packages.rsa.pub"\n' \
     > ~/.abuild/abuild.conf
 
 # Verify key pair consistency.
