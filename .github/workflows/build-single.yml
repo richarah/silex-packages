@@ -46,6 +46,8 @@ jobs:
             cgr.dev/chainguard/wolfi-base:latest \
             sh -c '
               MARCH="${CFLAGS_MARCH:-x86-64-v3}"
+              echo "https://packages.wolfi.dev/os" > /etc/apk/repositories
+              apk update -q
               apk add --no-cache abuild build-base clang mold pigz
               sed "s/-march=x86-64-v3/-march=$MARCH/" abuild.conf > /etc/abuild.conf
               mkdir -p /etc/apk/keys ~/.abuild
@@ -100,6 +102,8 @@ jobs:
             cgr.dev/chainguard/wolfi-base:latest \
             sh -c '
               MARCH="${CFLAGS_MARCH:-x86-64-v3}"
+              echo "https://packages.wolfi.dev/os" > /etc/apk/repositories
+              apk update -q
               apk add --no-cache abuild build-base clang mold pigz
               sed "s/-march=x86-64-v3/-march=$MARCH/" abuild.conf > /etc/abuild.conf
               mkdir -p /etc/apk/keys ~/.abuild

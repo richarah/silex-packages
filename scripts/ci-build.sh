@@ -6,6 +6,11 @@ set -e
 
 MARCH="${CFLAGS_MARCH:-x86-64-v3}"
 
+# wolfi-base defaults to apk.cgr.dev/chainguard (auth-required, lacks abuild).
+# Switch to the public Wolfi package repo before installing build tools.
+echo "https://packages.wolfi.dev/os" > /etc/apk/repositories
+apk update -q
+
 apk add --no-cache abuild build-base clang mold pigz
 
 sed "s/-march=x86-64-v3/-march=$MARCH/" abuild.conf > /etc/abuild.conf
