@@ -55,8 +55,14 @@ export STRIP="strip --strip-unneeded"
 ABUILDCONF
 
 mkdir -p /etc/apk/keys ~/.abuild
-printf '%s\n' "$SILEX_PKG_RSA"     > /etc/apk/keys/silex-packages.rsa
-printf '%s\n' "$SILEX_PKG_RSA_PUB" > /etc/apk/keys/silex-packages.rsa.pub
+printf '%s\n' "$SILEX_PKG_RSA" > /etc/apk/keys/silex-packages.rsa
+if [ -n "${SILEX_PKG_RSA_PUB:-}" ]; then
+    printf '%s\n' "$SILEX_PKG_RSA_PUB" > /etc/apk/keys/silex-packages.rsa.pub
+else
+    # Public key not provided; derive it from the private key.
+    openssl rsa -in /etc/apk/keys/silex-packages.rsa -pubout \
+        > /etc/apk/keys/silex-packages.rsa.pub 2>/dev/null
+fi
 cp /etc/apk/keys/silex-packages.rsa.pub keys/
 printf 'PACKAGER="Silex CI <noreply@richarah.github.io>"\nPACKAGER_PRIVKEY="/etc/apk/keys/silex-packages.rsa"\n' \
     > ~/.abuild/abuild.conf
