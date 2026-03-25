@@ -81,6 +81,65 @@ file
 unzip
 jq
 
+# Crypto / auth
+nettle-dev
+libkrb5-dev
+libldap-dev
+libsasl2-dev
+libseccomp-dev
+
+# Compression (additional)
+libbrotli-dev
+libdeflate-dev
+libarchive-dev
+
+# Networking (additional)
+libpsl-dev
+
+# Text / rendering
+libfribidi-dev
+libpango1.0-dev
+libpixman-1-dev
+libxkbcommon-dev
+libepoxy-dev
+
+# System / IPC
+libglib2.0-dev
+libdbus-1-dev
+libsystemd-dev
+libblkid-dev
+libmount-dev
+libaio-dev
+libdrm-dev
+
+# Regex (legacy API compatibility)
+libpcre3-dev
+
+# Boost C++ libraries
+libboost-dev
+
+# GPU compute
+libvulkan-dev
+
+# Build tools (additional)
+meson
+re2c
+swig
+patchelf
+
+# Debugging
+gdb
+strace
+valgrind
+
+# Utilities
+rsync
+zip
+gawk
+xxd
+socat
+tree
+
 # Extras commonly installed in Dockerfiles
 libprotobuf-dev
 protobuf-compiler
