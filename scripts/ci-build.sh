@@ -18,6 +18,16 @@ apk update -q
 # compiles cleanly on Wolfi/glibc.
 apk add --no-cache gcc make pkgconf scdoc openssl openssl-dev zlib-dev wget clang mold pigz
 
+# Wolfi installs clang as clang-NN without an unversioned symlink.
+# Create /usr/bin/clang and /usr/bin/clang++ if missing.
+if ! command -v clang >/dev/null 2>&1; then
+    CLANG_BIN=$(ls /usr/bin/clang-[0-9]* 2>/dev/null | head -1)
+    [ -n "$CLANG_BIN" ] && ln -sf "$CLANG_BIN" /usr/bin/clang
+    CLANGPP_BIN=$(ls /usr/bin/clang++-[0-9]* 2>/dev/null | head -1)
+    [ -n "$CLANGPP_BIN" ] && ln -sf "$CLANGPP_BIN" /usr/bin/clang++
+    echo "clang symlink: /usr/bin/clang -> $CLANG_BIN" >&2
+fi
+
 wget -q "https://github.com/alpinelinux/abuild/archive/refs/tags/${ABUILD_VER}.tar.gz" \
     -O /tmp/abuild.tar.gz
 tar -xzf /tmp/abuild.tar.gz -C /tmp
@@ -36,20 +46,6 @@ printf 'PACKAGER="Silex CI <noreply@richarah.github.io>"\nPACKAGER_PRIVKEY="/etc
 
 # abuild-sudo requires the abuild group to exist (even for root)
 addgroup -S abuild 2>/dev/null || groupadd -r abuild 2>/dev/null || true
-
-# Verify C compiler works with our CFLAGS before handing off to abuild
-echo "=== compiler check ===" >&2
-echo "${CC:-cc}" >&2
-"${CC:-cc}" --version >&2 || true
-echo 'int main(void){return 0;}' > /tmp/_cctest.c
-"${CC:-cc}" -c $CFLAGS /tmp/_cctest.c -o /tmp/_cctest.o 2>&1 || \
-    { echo "WARN: $CC -c $CFLAGS failed; falling back to gcc without flto" >&2
-      export CC=gcc CXX=g++
-      export CFLAGS="${CFLAGS//-flto=thin/}"
-      export CXXFLAGS="${CXXFLAGS//-flto=thin/}"
-      export LDFLAGS="${LDFLAGS//-flto=thin/}"
-      sed "s/CC=.*/CC=gcc/; s/CXX=.*/CXX=g++/; s/-flto=thin//g" /etc/abuild.conf > /tmp/abuild.conf.tmp
-      mv /tmp/abuild.conf.tmp /etc/abuild.conf; }
 
 chmod +x scripts/build-all.sh scripts/build-one.sh scripts/index.sh
 if [ -n "${1:-}" ]; then
