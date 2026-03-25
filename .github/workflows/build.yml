@@ -41,7 +41,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: packages-x86_64
-          path: x86_64/
+          path: aports/x86_64/
 
   build-aarch64:
     name: aarch64
@@ -67,7 +67,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: packages-aarch64
-          path: aarch64/
+          path: aports/aarch64/
 
   deploy:
     name: Deploy to Pages
@@ -81,17 +81,17 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: packages-x86_64
-          path: x86_64/
+          path: aports/x86_64/
 
       - uses: actions/download-artifact@v4
         with:
           name: packages-aarch64
-          path: aarch64/
+          path: aports/aarch64/
 
       - name: Commit and push
         run: |
           git config user.name "silex-ci"
           git config user.email "ci@silex"
-          git add x86_64/ aarch64/ keys/
+          git add aports/x86_64/ aports/aarch64/ keys/
           git commit -m "rebuild $(date -u +%Y-%m-%dT%H:%M:%SZ)" || true
           git push

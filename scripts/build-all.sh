@@ -4,7 +4,10 @@ set -e
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 APORTS="$REPO/aports"
 ARCH="${CARCH:-$(apk --print-arch 2>/dev/null || uname -m)}"
-REPODIR="$REPO/$ARCH"
+# abuild computes repo=${startdir%/*##*/} = parent dir name of each APKBUILD.
+# With aports/pkgname/APKBUILD the repo is "aports", so packages land in
+# $REPO/aports/$ARCH/.  REPODIR must match this for _reindex_and_install.
+REPODIR="$REPO/aports/$ARCH"
 
 # Add our output dir to apk's repo list (first, so it takes priority over
 # Alpine/Wolfi for packages we provide).  apk checks repos in listed order.

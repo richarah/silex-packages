@@ -52,6 +52,10 @@ export LDFLAGS="-fuse-ld=mold -flto=thin"
 export JOBS=\$(nproc)
 export ABUILD_GZIP="pigz -9"
 export STRIP="strip --strip-unneeded"
+# Wolfi's apk index verifies .apk signatures when indexing; our custom key
+# triggers BAD signature errors during update_abuildrepo_index.  Bypass
+# signature verification for intermediate repo index steps only.
+export ABUILD_APK_INDEX_OPTS="--allow-untrusted"
 ABUILDCONF
 
 mkdir -p /etc/apk/keys ~/.abuild
@@ -72,6 +76,19 @@ fi
 cp /etc/apk/keys/silex-packages.rsa.pub keys/
 printf 'PACKAGER="Silex CI <noreply@richarah.github.io>"\nPACKAGER_PRIVKEY="/etc/apk/keys/silex-packages.rsa"\n' \
     > ~/.abuild/abuild.conf
+
+# Verify key pair consistency.
+printf 'keypair-test' > /tmp/ktest
+openssl dgst -sha1 -sign /etc/apk/keys/silex-packages.rsa \
+    -out /tmp/ktest.sig /tmp/ktest 2>/dev/null
+if openssl dgst -sha1 -verify /etc/apk/keys/silex-packages.rsa.pub \
+    -signature /tmp/ktest.sig /tmp/ktest 2>/dev/null; then
+    printf 'KEYPAIR: OK (pub=%s)\n' \
+        "$(head -1 /etc/apk/keys/silex-packages.rsa.pub)"
+else
+    printf 'KEYPAIR: MISMATCH — package signatures will not verify\n' >&2
+fi
+rm -f /tmp/ktest /tmp/ktest.sig
 
 # abuild-sudo requires the abuild group to exist (even for root)
 addgroup -S abuild 2>/dev/null || groupadd -r abuild 2>/dev/null || true
