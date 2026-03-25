@@ -33,6 +33,3 @@ package() {
 		RAISE_SETFCAP=no
 }
 
-static() {
-	default_static
-}

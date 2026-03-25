@@ -76,6 +76,19 @@ else
     printf 'WARNING: auto-gzip man pages patch did not apply\n' >&2
 fi
 
+# Patch cleanup_makedepends to skip 'apk del .makedepends-$pkgname'.
+# build-all.sh builds packages in parallel waves; when package A finishes and
+# purges its makedeps, it can remove packages still needed by package B running
+# alongside it (e.g. autoconf purges perl which libcap still needs to run
+# mkcapshdoc.sh).  In this ephemeral CI container all packages are built once
+# and makedeps are never re-used, so accumulating them is harmless.
+sed -i 's/\$APK del \.makedepends-\$pkgname/true/g' /usr/bin/abuild
+if grep -q '\$APK del \.makedepends-\$pkgname' /usr/bin/abuild; then
+    printf 'WARNING: makedepends del patch did not apply\n' >&2
+else
+    printf 'abuild cleanup_makedepends: del patched to true\n'
+fi
+
 # APK wrapper: prepends --allow-untrusted to every abuild-initiated apk call.
 # Needed for makedep resolution from the unsigned intermediate APKINDEX created
 # by build-all.sh's _reindex_and_install.
