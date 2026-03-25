@@ -1,0 +1,34 @@
+# Maintainer: silex-ci <ci@silex>
+pkgname=libffi
+pkgver=3.4.6
+pkgrel=0
+pkgdesc="Portable foreign function interface library"
+url="https://sourceware.org/libffi/"
+arch="x86_64 aarch64"
+license="MIT"
+makedepends=""
+subpackages="$pkgname-dev $pkgname-static"
+source="https://github.com/libffi/libffi/releases/download/v$pkgver/libffi-$pkgver.tar.gz"
+sha512sums="033d2600e879b83c6bce0eb80f69c5f32aa775bf2e962c9d39fbd21226fa19d1e79173d8eaa0d0157014d54509ea73315ad86842356fc3a303c0831c94c6ab39  libffi-3.4.6.tar.gz"
+options="!check"
+
+build() {
+	cd "$builddir"
+	./configure \
+		--prefix=/usr \
+		--enable-shared \
+		--disable-docs \
+		CC="$CC" \
+		CFLAGS="$CFLAGS" \
+		LDFLAGS="$LDFLAGS"
+	make -j$JOBS
+}
+
+package() {
+	cd "$builddir"
+	make install DESTDIR="$pkgdir"
+}
+
+static() {
+	default_static
+}

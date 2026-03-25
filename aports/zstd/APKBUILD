@@ -1,0 +1,39 @@
+# Maintainer: silex-ci <ci@silex>
+pkgname=zstd
+pkgver=1.5.6
+pkgrel=0
+pkgdesc="Zstandard — fast real-time compression algorithm"
+url="https://facebook.github.io/zstd/"
+arch="x86_64 aarch64"
+license="BSD-3-Clause AND GPL-2.0-only"
+makedepends="cmake ninja zlib-dev"
+subpackages="$pkgname-dev $pkgname-static"
+source="https://github.com/facebook/zstd/releases/download/v$pkgver/zstd-$pkgver.tar.gz"
+sha512sums="54a578f2484da0520a6e9a24f501b9540a3fe3806785d6bc9db79fc095b7c142a7c121387c7eecd460ca71446603584ef1ba4d29a33ca90873338c9ffbd04f14  zstd-1.5.6.tar.gz"
+options="!check"
+
+build() {
+	cmake -B build -S "$builddir" \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_C_COMPILER="$CC" \
+		-DCMAKE_CXX_COMPILER="$CXX" \
+		-DCMAKE_C_FLAGS="$CFLAGS" \
+		-DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+		-DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+		-DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" \
+		-DZSTD_BUILD_PROGRAMS=ON \
+		-DZSTD_BUILD_SHARED=ON \
+		-DZSTD_BUILD_STATIC=ON \
+		-DZSTD_ZLIB_SUPPORT=ON \
+		-G Ninja
+	ninja -C build -j$JOBS
+}
+
+package() {
+	DESTDIR="$pkgdir" ninja -C build install
+}
+
+static() {
+	default_static
+}

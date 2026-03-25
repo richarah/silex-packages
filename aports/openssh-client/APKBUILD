@@ -1,0 +1,44 @@
+# Maintainer: silex-ci <ci@silex>
+# Installs only the client binaries (ssh, scp, sftp, ssh-keygen, ssh-add, etc.).
+# Does not install sshd.
+pkgname=openssh-client
+pkgver=9.9p1
+pkgrel=0
+pkgdesc="OpenSSH client utilities"
+url="https://www.openssh.com/"
+arch="x86_64 aarch64"
+license="BSD-2-Clause"
+makedepends="openssl-dev zlib-dev"
+builddir="$srcdir/openssh-$pkgver"
+source="https://cdn.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-$pkgver.tar.gz"
+sha512sums="3cc0ed97f3e29ecbd882eca79239f02eb5a1606fce4f3119ddc3c5e86128aa3ff12dc85000879fccc87b60e7d651cfe37376607ac66075fede2118deaa685d6d  openssh-9.9p1.tar.gz"
+options="!check"
+
+build() {
+	cd "$builddir"
+	./configure \
+		--prefix=/usr \
+		--sysconfdir=/etc/ssh \
+		--with-openssl \
+		--with-zlib \
+		--without-pam \
+		--without-kerberos5 \
+		--without-libedit \
+		CC="$CC" \
+		CFLAGS="$CFLAGS" \
+		LDFLAGS="$LDFLAGS"
+	make -j$JOBS
+}
+
+package() {
+	cd "$builddir"
+	# Install only client tools; skip sshd, sshd_config, etc.
+	install -Dm755 ssh      "$pkgdir/usr/bin/ssh"
+	install -Dm755 scp      "$pkgdir/usr/bin/scp"
+	install -Dm755 sftp     "$pkgdir/usr/bin/sftp"
+	install -Dm755 ssh-keygen "$pkgdir/usr/bin/ssh-keygen"
+	install -Dm755 ssh-keyscan "$pkgdir/usr/bin/ssh-keyscan"
+	install -Dm755 ssh-add  "$pkgdir/usr/bin/ssh-add"
+	install -Dm755 ssh-agent "$pkgdir/usr/bin/ssh-agent"
+	install -Dm644 ssh_config "$pkgdir/etc/ssh/ssh_config"
+}

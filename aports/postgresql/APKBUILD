@@ -1,0 +1,52 @@
+# Maintainer: silex-ci <ci@silex>
+# Note: builds libpq and pg_config only; server binaries are not packaged.
+pkgname=postgresql
+pkgver=17.2
+pkgrel=0
+pkgdesc="PostgreSQL client library (libpq)"
+url="https://www.postgresql.org/"
+arch="x86_64 aarch64"
+license="PostgreSQL"
+makedepends="
+	openssl-dev
+	readline-dev
+	zlib-dev
+	linux-headers
+	"
+subpackages="$pkgname-dev libpq:libpq"
+source="https://ftp.postgresql.org/pub/source/v$pkgver/postgresql-$pkgver.tar.gz"
+sha512sums="e98d3e0aaae09c4da74839e62cab0f93e0945c9a764188d5a32ee00f0c83fb512a1fab4286fb7ca64e5dbcbc5120db812ea9c24f047082c28a4be7916fcc3f20  postgresql-17.2.tar.gz"
+options="!check"
+
+build() {
+	cd "$builddir"
+	./configure \
+		--prefix=/usr \
+		--with-openssl \
+		--with-readline \
+		--without-icu \
+		--without-ldap \
+		--without-systemd \
+		CC="$CC" \
+		CXX="$CXX" \
+		CFLAGS="$CFLAGS" \
+		CXXFLAGS="$CXXFLAGS" \
+		LDFLAGS="$LDFLAGS"
+	# Build only the client interface and pg_config
+	make -j$JOBS -C src/interfaces/libpq
+	make -j$JOBS -C src/bin/pg_config
+	make -j$JOBS -C src/include
+}
+
+package() {
+	cd "$builddir"
+	make -C src/interfaces/libpq install DESTDIR="$pkgdir"
+	make -C src/bin/pg_config install DESTDIR="$pkgdir"
+	make -C src/include install DESTDIR="$pkgdir"
+}
+
+libpq() {
+	pkgdesc="PostgreSQL client library"
+	mkdir -p "$subpkgdir/usr/lib"
+	mv "$pkgdir"/usr/lib/libpq.so* "$subpkgdir/usr/lib/"
+}

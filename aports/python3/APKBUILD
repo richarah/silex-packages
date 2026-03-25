@@ -1,0 +1,66 @@
+# Maintainer: silex-ci <ci@silex>
+pkgname=python3
+pkgver=3.13.2
+pkgrel=0
+pkgdesc="High-level scripting language"
+url="https://www.python.org/"
+arch="x86_64 aarch64"
+license="PSF-2.0"
+makedepends="
+	openssl-dev
+	zlib-dev
+	bzip2-dev
+	xz-dev
+	readline-dev
+	ncurses-dev
+	sqlite-dev
+	libffi-dev
+	expat-dev
+	gdbm-dev
+	linux-headers
+	"
+subpackages="$pkgname-dev $pkgname-libs:_libs"
+builddir="$srcdir/Python-$pkgver"
+source="https://www.python.org/ftp/python/$pkgver/Python-$pkgver.tar.xz"
+sha512sums="bb1c0598914c6d4326554faa568f660f10b20c701d0f36bf1fa58837b6498d728a407416b06ede39604caea1ca93f60545b83b01ae8ee65f55d4cc83242b63fe  Python-3.13.2.tar.xz"
+options="!check"
+
+build() {
+	cd "$builddir"
+	# --enable-optimizations uses PGO which conflicts with our LTO+clang setup.
+	# PGO is genuinely beneficial for Python but requires a two-stage build that
+	# clang supports via -fprofile-generate / -fprofile-use. Skip for now.
+	./configure \
+		--prefix=/usr \
+		--enable-shared \
+		--enable-ipv6 \
+		--with-openssl=/usr \
+		--with-ensurepip=install \
+		--without-ensurepip-self-contained \
+		--with-system-expat \
+		--with-system-ffi \
+		--with-readline=readline \
+		--with-computed-gotos \
+		--without-static-libpython \
+		CC="$CC" \
+		CXX="$CXX" \
+		CFLAGS="$CFLAGS" \
+		CXXFLAGS="$CXXFLAGS" \
+		LDFLAGS="$LDFLAGS"
+	make -j$JOBS
+}
+
+package() {
+	cd "$builddir"
+	make install DESTDIR="$pkgdir"
+	# Unversioned symlink
+	ln -sf python3 "$pkgdir/usr/bin/python" 2>/dev/null || true
+	# pip symlink
+	ln -sf pip3 "$pkgdir/usr/bin/pip" 2>/dev/null || true
+}
+
+_libs() {
+	pkgdesc="Python 3 shared library"
+	mkdir -p "$subpkgdir/usr/lib"
+	mv "$pkgdir"/usr/lib/libpython*.so* "$subpkgdir/usr/lib/"
+}

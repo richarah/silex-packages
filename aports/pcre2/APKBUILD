@@ -1,0 +1,41 @@
+# Maintainer: silex-ci <ci@silex>
+pkgname=pcre2
+pkgver=10.44
+pkgrel=0
+pkgdesc="Perl-compatible regular expression library, version 2"
+url="https://github.com/PCRE2Project/pcre2"
+arch="x86_64 aarch64"
+license="BSD-3-Clause"
+makedepends="cmake ninja zlib-dev bzip2-dev"
+subpackages="$pkgname-dev $pkgname-static"
+source="https://github.com/PCRE2Project/pcre2/releases/download/pcre2-$pkgver/pcre2-$pkgver.tar.bz2"
+sha512sums="ee91cc10a2962bc7818b03d368df3dd31f42ea9a7260ae51483ea8cd331b7431e36e63256b0adc213cc6d6741e7c90414fd420622308c0ae3fcb5dd878591be2  pcre2-10.44.tar.bz2"
+options="!check"
+
+build() {
+	cmake -B build -S "$builddir" \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_C_COMPILER="$CC" \
+		-DCMAKE_C_FLAGS="$CFLAGS" \
+		-DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+		-DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" \
+		-DPCRE2_BUILD_PCRE2_8=ON \
+		-DPCRE2_BUILD_PCRE2_16=ON \
+		-DPCRE2_BUILD_PCRE2_32=ON \
+		-DPCRE2_SUPPORT_JIT=ON \
+		-DPCRE2_SUPPORT_UNICODE=ON \
+		-DPCRE2_SUPPORT_LIBZ=ON \
+		-DPCRE2_SUPPORT_LIBBZ2=ON \
+		-DPCRE2_BUILD_TESTS=OFF \
+		-G Ninja
+	ninja -C build -j$JOBS
+}
+
+package() {
+	DESTDIR="$pkgdir" ninja -C build install
+}
+
+static() {
+	default_static
+}

@@ -1,0 +1,41 @@
+# Maintainer: silex-ci <ci@silex>
+pkgname=nghttp2
+pkgver=1.64.0
+pkgrel=0
+pkgdesc="HTTP/2 C library and tools"
+url="https://nghttp2.org/"
+arch="x86_64 aarch64"
+license="MIT"
+makedepends="cmake ninja openssl-dev zlib-dev"
+subpackages="$pkgname-dev $pkgname-static"
+source="https://github.com/nghttp2/nghttp2/releases/download/v$pkgver/nghttp2-$pkgver.tar.xz"
+sha512sums="b544196c3b7a55faacd11700d11e2fe4f16a7418282c9abb24a668544a15293580fd1a2cc5f93367c8a17c7ee45335c6d2f5c68a72dd176d516fd033f203eeec  nghttp2-1.64.0.tar.xz"
+options="!check"
+
+build() {
+	cmake -B build -S "$builddir" \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_C_COMPILER="$CC" \
+		-DCMAKE_CXX_COMPILER="$CXX" \
+		-DCMAKE_C_FLAGS="$CFLAGS" \
+		-DCMAKE_CXX_FLAGS="$CXXFLAGS" \
+		-DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+		-DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" \
+		-DENABLE_LIB_ONLY=ON \
+		-DENABLE_STATIC_LIB=ON \
+		-DENABLE_SHARED_LIB=ON \
+		-DENABLE_PYTHON_BINDINGS=OFF \
+		-DWITH_JEMALLOC=OFF \
+		-DWITH_MRUBY=OFF \
+		-G Ninja
+	ninja -C build -j$JOBS
+}
+
+package() {
+	DESTDIR="$pkgdir" ninja -C build install
+}
+
+static() {
+	default_static
+}

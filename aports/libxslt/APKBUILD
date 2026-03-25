@@ -1,0 +1,36 @@
+# Maintainer: silex-ci <ci@silex>
+pkgname=libxslt
+pkgver=1.1.42
+pkgrel=0
+pkgdesc="XSLT and EXSLT library"
+url="https://gitlab.gnome.org/GNOME/libxslt"
+arch="x86_64 aarch64"
+license="MIT"
+makedepends="cmake ninja libxml2-dev"
+subpackages="$pkgname-dev $pkgname-static"
+source="https://download.gnome.org/sources/libxslt/${pkgver%.*}/libxslt-$pkgver.tar.xz"
+sha512sums="02a2189b6cd65fa1fb929fc0e6868bc046bdd8827849f0048cdf9267ed9450745158cef0f2713a833e28fb520b312ff86dc5754dd423ce768c457bfd8812bdc7  libxslt-1.1.42.tar.xz"
+options="!check"
+
+build() {
+	cmake -B build -S "$builddir" \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_C_COMPILER="$CC" \
+		-DCMAKE_C_FLAGS="$CFLAGS" \
+		-DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+		-DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" \
+		-DBUILD_SHARED_LIBS=ON \
+		-DLIBXSLT_WITH_PYTHON=OFF \
+		-DLIBXSLT_WITH_TESTS=OFF \
+		-G Ninja
+	ninja -C build -j$JOBS
+}
+
+package() {
+	DESTDIR="$pkgdir" ninja -C build install
+}
+
+static() {
+	default_static
+}

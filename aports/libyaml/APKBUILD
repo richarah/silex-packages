@@ -1,0 +1,34 @@
+# Maintainer: silex-ci <ci@silex>
+pkgname=libyaml
+pkgver=0.2.5
+pkgrel=0
+pkgdesc="YAML 1.1 parser and emitter library"
+url="https://pyyaml.org/wiki/LibYAML"
+arch="x86_64 aarch64"
+license="MIT"
+makedepends=""
+subpackages="$pkgname-dev $pkgname-static"
+builddir="$srcdir/yaml-$pkgver"
+source="https://github.com/yaml/libyaml/releases/download/$pkgver/yaml-$pkgver.tar.gz"
+sha512sums="dadd7d8e0d88b5ebab005e5d521d56d541580198aa497370966b98c904586e642a1cd4f3881094eb57624f218d50db77417bbfd0ffdce50340f011e35e8c4c02  yaml-0.2.5.tar.gz"
+options="!check"
+
+build() {
+	cd "$builddir"
+	./configure \
+		--prefix=/usr \
+		--enable-shared \
+		CC="$CC" \
+		CFLAGS="$CFLAGS" \
+		LDFLAGS="$LDFLAGS"
+	make -j$JOBS
+}
+
+package() {
+	cd "$builddir"
+	make install DESTDIR="$pkgdir"
+}
+
+static() {
+	default_static
+}

@@ -1,0 +1,102 @@
+name: Build single package
+
+on:
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Package name (directory under aports/)'
+        required: true
+        type: string
+      arch:
+        description: 'Target architecture'
+        required: true
+        default: 'x86_64'
+        type: choice
+        options:
+          - x86_64
+          - aarch64
+          - both
+
+jobs:
+  build:
+    name: ${{ inputs.package }} / ${{ inputs.arch }}
+    runs-on: ${{ inputs.arch == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+    if: inputs.arch != 'both'
+    container:
+      image: ghcr.io/richarah/silex:slim
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: apk add --no-cache abuild alpine-sdk pigz
+
+      - name: Configure abuild
+        run: |
+          if [ "${{ inputs.arch }}" = "aarch64" ]; then
+            sed 's/-march=x86-64-v3/-march=armv8.2-a+crypto/' abuild.conf \
+              > /etc/abuild.conf
+          else
+            cp abuild.conf /etc/abuild.conf
+          fi
+          mkdir -p /etc/apk/keys
+          echo "${{ secrets.SILEX_PKG_RSA }}" > /etc/apk/keys/silex-packages.rsa
+          echo "${{ secrets.SILEX_PKG_RSA_PUB }}" > /etc/apk/keys/silex-packages.rsa.pub
+          mkdir -p ~/.abuild
+          echo 'PACKAGER_PRIVKEY="/etc/apk/keys/silex-packages.rsa"' > ~/.abuild/abuild.conf
+
+      - name: Build ${{ inputs.package }}
+        run: |
+          chmod +x scripts/build-one.sh
+          scripts/build-one.sh "${{ inputs.package }}"
+
+      - name: Update index
+        run: scripts/index.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.package }}-${{ inputs.arch }}
+          path: ${{ inputs.arch }}/
+
+  build-both:
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-latest
+            cflags_march: x86-64-v3
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+            cflags_march: armv8.2-a+crypto
+    name: ${{ inputs.package }} / ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    if: inputs.arch == 'both'
+    container:
+      image: ghcr.io/richarah/silex:slim
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: apk add --no-cache abuild alpine-sdk pigz
+
+      - name: Configure abuild
+        run: |
+          sed "s/-march=x86-64-v3/-march=${{ matrix.cflags_march }}/" abuild.conf \
+            > /etc/abuild.conf
+          mkdir -p /etc/apk/keys
+          echo "${{ secrets.SILEX_PKG_RSA }}" > /etc/apk/keys/silex-packages.rsa
+          echo "${{ secrets.SILEX_PKG_RSA_PUB }}" > /etc/apk/keys/silex-packages.rsa.pub
+          mkdir -p ~/.abuild
+          echo 'PACKAGER_PRIVKEY="/etc/apk/keys/silex-packages.rsa"' > ~/.abuild/abuild.conf
+
+      - name: Build ${{ inputs.package }}
+        run: |
+          chmod +x scripts/build-one.sh
+          scripts/build-one.sh "${{ inputs.package }}"
+
+      - name: Update index
+        run: scripts/index.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.package }}-${{ matrix.arch }}
+          path: ${{ matrix.arch }}/

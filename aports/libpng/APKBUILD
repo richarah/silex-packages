@@ -1,0 +1,36 @@
+# Maintainer: silex-ci <ci@silex>
+pkgname=libpng
+pkgver=1.6.44
+pkgrel=0
+pkgdesc="Portable Network Graphics library"
+url="http://www.libpng.org/pub/png/libpng.html"
+arch="x86_64 aarch64"
+license="Libpng"
+makedepends="cmake ninja zlib-dev"
+subpackages="$pkgname-dev $pkgname-static"
+source="https://sourceforge.net/projects/libpng/files/libpng16/$pkgver/libpng-$pkgver.tar.xz"
+sha512sums="bbd3e5e68d8b6fe3d85e59ca0babe8b522c19cac4b6ce0fcf21516cda7120b642be611eb1eaa565b7eabbacd22606593619aabd227b43a36f1efc707e7e11851  libpng-1.6.44.tar.xz"
+options="!check"
+
+build() {
+	cmake -B build -S "$builddir" \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_C_COMPILER="$CC" \
+		-DCMAKE_C_FLAGS="$CFLAGS" \
+		-DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+		-DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" \
+		-DPNG_SHARED=ON \
+		-DPNG_STATIC=ON \
+		-DPNG_TESTS=OFF \
+		-G Ninja
+	ninja -C build -j$JOBS
+}
+
+package() {
+	DESTDIR="$pkgdir" ninja -C build install
+}
+
+static() {
+	default_static
+}

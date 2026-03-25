@@ -1,0 +1,46 @@
+# Maintainer: silex-ci <ci@silex>
+pkgname=sqlite
+pkgver=3.48.0
+pkgrel=0
+pkgdesc="Small, fast, self-contained SQL database engine"
+url="https://www.sqlite.org/"
+arch="x86_64 aarch64"
+license="blessing"
+makedepends="zlib-dev readline-dev"
+subpackages="$pkgname-dev $pkgname-static"
+# sqlite version encoding: 3.48.0 -> 3480000
+_ver=3480000
+builddir="$srcdir/sqlite-autoconf-$_ver"
+source="https://www.sqlite.org/2025/sqlite-autoconf-$_ver.tar.gz"
+sha512sums="c607cbc58cdef6910a87ddb6ae8aeabdab2769d6cc33aad04f31fc428ecc5a8eaf19f5d3a3590591aae2c920b106a684891d38efef712f91631602245f6f4d3d  sqlite-autoconf-3480000.tar.gz"
+options="!check"
+
+build() {
+	cd "$builddir"
+	# Recommended compile flags from SQLite documentation
+	CFLAGS="$CFLAGS \
+		-DSQLITE_ENABLE_FTS4 \
+		-DSQLITE_ENABLE_FTS5 \
+		-DSQLITE_ENABLE_JSON1 \
+		-DSQLITE_ENABLE_RTREE \
+		-DSQLITE_ENABLE_STAT4 \
+		-DSQLITE_ENABLE_UNLOCK_NOTIFY \
+		-DSQLITE_ENABLE_COLUMN_METADATA \
+		-DSQLITE_USE_URI" \
+	./configure \
+		--prefix=/usr \
+		--enable-shared \
+		--enable-readline \
+		CC="$CC" \
+		LDFLAGS="$LDFLAGS"
+	make -j$JOBS
+}
+
+package() {
+	cd "$builddir"
+	make install DESTDIR="$pkgdir"
+}
+
+static() {
+	default_static
+}

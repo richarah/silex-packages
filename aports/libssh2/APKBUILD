@@ -1,0 +1,39 @@
+# Maintainer: silex-ci <ci@silex>
+pkgname=libssh2
+pkgver=1.11.1
+pkgrel=0
+pkgdesc="Client-side C library implementing the SSH2 protocol"
+url="https://libssh2.org/"
+arch="x86_64 aarch64"
+license="BSD-3-Clause"
+makedepends="cmake ninja openssl-dev zlib-dev"
+subpackages="$pkgname-dev $pkgname-static"
+source="https://github.com/libssh2/libssh2/releases/download/libssh2-$pkgver/libssh2-$pkgver.tar.gz"
+sha512sums="8703636fc28f0b12c8171712f3d605e0466a5bb9ba06e136c3203548fc3408ab07defd71dc801d7009a337e1e02fd60e8933a2a526d5ef0ce53153058d201233  libssh2-1.11.1.tar.gz"
+options="!check"
+
+build() {
+	cmake -B build -S "$builddir" \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_C_COMPILER="$CC" \
+		-DCMAKE_C_FLAGS="$CFLAGS" \
+		-DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
+		-DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" \
+		-DBUILD_SHARED_LIBS=ON \
+		-DBUILD_STATIC_LIBS=ON \
+		-DCRYPTO_BACKEND=OpenSSL \
+		-DENABLE_ZLIB_COMPRESSION=ON \
+		-DBUILD_TESTING=OFF \
+		-DBUILD_EXAMPLES=OFF \
+		-G Ninja
+	ninja -C build -j$JOBS
+}
+
+package() {
+	DESTDIR="$pkgdir" ninja -C build install
+}
+
+static() {
+	default_static
+}
