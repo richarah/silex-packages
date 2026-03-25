@@ -18,13 +18,14 @@ apk update -q
 # compiles cleanly on Wolfi/glibc.
 apk add --no-cache gcc make pkgconf scdoc openssl openssl-dev zlib-dev wget clang mold pigz
 
-# openssf-compiler-options (a Wolfi dep) wraps compiler binaries with a
-# hardening shim that breaks configure test programs.  Bypass it by
-# pointing /usr/bin/clang directly at the versioned binary.
+# openssf-compiler-options (a Wolfi dep) wraps compiler binaries via
+# /usr/bin/clang → gcc-wrapper.  Its post-install hook re-creates the
+# symlink every time makedepends are installed, so a one-shot ln -sf
+# does not survive abuild's makedep step.  Instead, pin CC/CXX in
+# /etc/abuild.conf to the absolute versioned binary path (e.g.
+# /usr/bin/clang-22), which the hook never overwrites.
 CLANG_BIN=$(ls /usr/bin/clang-[0-9]* 2>/dev/null | head -1)
-[ -n "$CLANG_BIN" ] && ln -sf "$CLANG_BIN" /usr/bin/clang
 CLANGPP_BIN=$(ls /usr/bin/clang++-[0-9]* 2>/dev/null | head -1)
-[ -n "$CLANGPP_BIN" ] && ln -sf "$CLANGPP_BIN" /usr/bin/clang++
 
 wget -q "https://github.com/alpinelinux/abuild/archive/refs/tags/${ABUILD_VER}.tar.gz" \
     -O /tmp/abuild.tar.gz
@@ -34,6 +35,8 @@ make -C /tmp/abuild-${ABUILD_VER} install prefix=/usr
 rm -rf /tmp/abuild-${ABUILD_VER} /tmp/abuild.tar.gz
 
 sed "s/-march=x86-64-v3/-march=$MARCH/" abuild.conf > /etc/abuild.conf
+[ -n "$CLANG_BIN"   ] && sed -i "s|export CC=\"clang\"|export CC=\"$CLANG_BIN\"|"     /etc/abuild.conf
+[ -n "$CLANGPP_BIN" ] && sed -i "s|export CXX=\"clang++\"|export CXX=\"$CLANGPP_BIN\"|" /etc/abuild.conf
 
 mkdir -p /etc/apk/keys ~/.abuild
 printf '%s\n' "$SILEX_PKG_RSA"     > /etc/apk/keys/silex-packages.rsa
