@@ -58,10 +58,16 @@ mkdir -p /etc/apk/keys ~/.abuild
 printf '%s\n' "$SILEX_PKG_RSA" > /etc/apk/keys/silex-packages.rsa
 if [ -n "${SILEX_PKG_RSA_PUB:-}" ]; then
     printf '%s\n' "$SILEX_PKG_RSA_PUB" > /etc/apk/keys/silex-packages.rsa.pub
-else
-    # Public key not provided; derive it from the private key.
+elif openssl rsa -in /etc/apk/keys/silex-packages.rsa -check -noout 2>/dev/null; then
+    # Private key is valid PEM; derive the public key from it.
     openssl rsa -in /etc/apk/keys/silex-packages.rsa -pubout \
-        > /etc/apk/keys/silex-packages.rsa.pub 2>/dev/null
+        -out /etc/apk/keys/silex-packages.rsa.pub
+else
+    # Key is missing or malformed; generate an ephemeral pair for this run.
+    printf 'WARNING: generating ephemeral signing key\n' >&2
+    openssl genrsa -out /etc/apk/keys/silex-packages.rsa 4096 2>/dev/null
+    openssl rsa -in /etc/apk/keys/silex-packages.rsa -pubout \
+        -out /etc/apk/keys/silex-packages.rsa.pub 2>/dev/null
 fi
 cp /etc/apk/keys/silex-packages.rsa.pub keys/
 printf 'PACKAGER="Silex CI <noreply@richarah.github.io>"\nPACKAGER_PRIVKEY="/etc/apk/keys/silex-packages.rsa"\n' \
