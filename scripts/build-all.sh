@@ -34,6 +34,29 @@ _reindex_and_install() {
     done
 }
 
+# _pre_install_deps: collect all makedepends from the listed packages and
+# install them in a single serialized apk add before parallel builds start.
+# This prevents concurrent apk lock acquisition (which causes EINTR under
+# high parallelism) — each parallel build then hits an already-populated DB
+# and its own apk add becomes a near-instant no-op.
+_pre_install_deps() {
+    _all_deps=""
+    for pkg in "$@"; do
+        dir="$APORTS/$pkg"
+        [ -f "$dir/APKBUILD" ] || continue
+        # Join APKBUILD lines, extract makedepends="..." value (handles multi-line)
+        _deps=$(tr -d '\n\t' < "$dir/APKBUILD" | \
+            grep -o 'makedepends="[^"]*"' | \
+            sed 's/^makedepends="//; s/"$//')
+        _all_deps="$_all_deps $_deps"
+    done
+    # Deduplicate
+    _all_deps=$(printf '%s\n' $_all_deps | sort -u | grep -v '^$' | tr '\n' ' ')
+    [ -z "$_all_deps" ] && return 0
+    printf '=== pre-installing wave makedeps ===\n'
+    /usr/bin/apk add --no-progress $_all_deps 2>/dev/null || true
+}
+
 # _build_wave: build all listed packages in parallel, then reindex.
 # Packages within a wave have no inter-dependencies; they only depend on
 # packages from earlier waves (already installed by _reindex_and_install).
@@ -43,9 +66,12 @@ _wave_fail=/tmp/_wave_fail_$$
 trap 'rm -f "$_wave_fail"' EXIT INT TERM
 
 _build_wave() {
+    # Pre-install all makedeps serially before launching parallel builds.
+    _pre_install_deps "$@"
     rm -f "$_wave_fail"
     for pkg in "$@"; do
         (
+            trap '' EXIT INT TERM  # Don't inherit parent's rm -f on subshell exit
             dir="$APORTS/$pkg"
             [ -f "$dir/APKBUILD" ] || { echo "=== skip $pkg (no APKBUILD) ==="; exit 0; }
             echo "=== building $pkg ==="
@@ -58,7 +84,7 @@ _build_wave() {
             echo "=== done $pkg ==="
         ) &
     done
-    wait
+    wait || true  # wait for all jobs; don't let set -e fire on non-zero exit
     if [ -f "$_wave_fail" ]; then
         echo "=== wave failed ===" >&2
         exit 1

@@ -14,12 +14,13 @@ options="!check"
 
 build() {
 	cd "$builddir"
+	# gperf 3.1 uses 'register' in getline.cc; removed in C++17.
 	./configure \
 		--prefix=/usr \
 		CC="$CC" \
 		CXX="$CXX" \
 		CFLAGS="$CFLAGS" \
-		CXXFLAGS="$CXXFLAGS" \
+		CXXFLAGS="$CXXFLAGS -std=c++14" \
 		LDFLAGS="$LDFLAGS"
 	make -j$JOBS
 }
