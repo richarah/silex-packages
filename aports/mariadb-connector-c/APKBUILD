@@ -21,6 +21,7 @@ build() {
 	cmake -B build -S . \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBDIR=lib \
 		-DCMAKE_C_COMPILER="$CC" \
 		-DCMAKE_C_FLAGS="$CFLAGS" \
 		-DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
