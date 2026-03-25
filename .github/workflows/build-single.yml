@@ -23,7 +23,7 @@ jobs:
     runs-on: ${{ inputs.arch == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     if: inputs.arch != 'both'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Verify provides=
         run: |
@@ -65,7 +65,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     if: inputs.arch == 'both'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Verify provides=
         run: |
