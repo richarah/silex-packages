@@ -28,19 +28,13 @@ check_apk() {
     # Contains .PKGINFO?
     PKGINFO=$(tar -tzf "$APK" 2>/dev/null | grep -x '\.PKGINFO' | head -1)
     if [ -z "$PKGINFO" ]; then
-        # APK may be signed (two gzip streams); try reading as combined stream
-        # by looking at members including stream 2
-        PKGINFO=$(tar -tzf "$APK" --ignore-zeros 2>/dev/null | grep '^\.PKGINFO$' | head -1)
-    fi
-    if [ -z "$PKGINFO" ]; then
         printf 'FAIL %s: no .PKGINFO member\n' "$NAME"
         FAILURES=$((FAILURES + 1))
         return
     fi
 
     # Extract .PKGINFO and check required fields
-    INFO=$(tar -xzf "$APK" .PKGINFO -O 2>/dev/null || \
-           tar -xzf "$APK" --ignore-zeros .PKGINFO -O 2>/dev/null)
+    INFO=$(tar -xzf "$APK" .PKGINFO -O 2>/dev/null)
 
     for field in pkgname pkgver arch; do
         if ! printf '%s' "$INFO" | grep -q "^$field = "; then

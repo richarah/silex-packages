@@ -7,11 +7,9 @@
 #   REPO_DIR    -- directory where .apk files are written (required)
 #   ARCH        -- target architecture (default: $(uname -m))
 #   SCRIPTS_DIR -- directory containing helper scripts
-#   PRIVKEY     -- path to RSA private key for signing (optional)
-#   PUBKEY      -- path to RSA public key (required if PRIVKEY is set)
 #   CC, CXX, CFLAGS, CXXFLAGS, LDFLAGS -- set by sourcing config/cflags.conf
 #
-# Requires: apt-get, dpkg-source, dpkg-deb, make/ninja/meson, openssl
+# Requires: apt-get, dpkg-source, dpkg-deb, make/ninja/meson
 
 set -e
 
@@ -188,8 +186,5 @@ PKGVER=$(awk  '/^pkgver/{print $3}'  "$STAGING/.PKGINFO")
 OUTPUT="$REPO_DIR/${PKGNAME}-${PKGVER}.${ARCH}.apk"
 
 "$SCRIPTS_DIR/mkapk.sh" "$STAGING" "$OUTPUT"
-
-[ -n "$PRIVKEY" ] && [ -n "$PUBKEY" ] && \
-    "$SCRIPTS_DIR/sign.sh" "$PRIVKEY" "$PUBKEY" "$OUTPUT"
 
 printf 'recompiled: %s -> %s\n' "$PKG" "$(basename "$OUTPUT")"

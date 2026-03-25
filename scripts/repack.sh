@@ -8,11 +8,8 @@
 #   ARCH        — target architecture (default: $(uname -m))
 #   SCRIPTS_DIR — directory containing mkpkginfo.sh, mkapk.sh, sign.sh
 #                 (default: directory of this script)
-#   PRIVKEY     — path to RSA private key for signing (optional;
-#                 skip signing if not set)
-#   PUBKEY      — path to RSA public key (required if PRIVKEY is set)
 #
-# Requires: apt-get, dpkg-deb, tar, gzip, openssl (for signing)
+# Requires: apt-get, dpkg-deb, tar, gzip
 
 set -e
 
@@ -60,10 +57,5 @@ OUTPUT="$REPO_DIR/${PKGNAME}-${PKGVER}.${ARCH}.apk"
 
 # Assemble .apk
 "$SCRIPTS_DIR/mkapk.sh" "$STAGING" "$OUTPUT"
-
-# Sign if keys are available
-if [ -n "$PRIVKEY" ] && [ -n "$PUBKEY" ]; then
-    "$SCRIPTS_DIR/sign.sh" "$PRIVKEY" "$PUBKEY" "$OUTPUT"
-fi
 
 printf 'repacked: %s -> %s\n' "$PKG" "$(basename "$OUTPUT")"
