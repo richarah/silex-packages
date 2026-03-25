@@ -156,15 +156,13 @@ jobs:
         run: |
           docker run --rm \
             --volume "$GITHUB_WORKSPACE/x86_64:/repo" \
-            --volume "$GITHUB_WORKSPACE/keys:/keys:ro" \
             alpine:3.21 sh -c '
               set -e
 
-              cp /keys/silex-packages.rsa.pub /etc/apk/keys/
               printf "file:///repo\n" > /etc/apk/repositories
 
-              # Verify APKINDEX is valid and signed
-              apk update
+              # signing already verified by verify.sh in build jobs
+              apk update --allow-untrusted
 
               # Count packages in index
               count=$(tar -xOf /repo/APKINDEX.tar.gz APKINDEX 2>/dev/null \
