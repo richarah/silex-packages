@@ -15,7 +15,7 @@ apk update -q
 # abuild is not in packages.wolfi.dev/os (Wolfi uses melange, not abuild).
 # Build abuild from Alpine source — all C files use standard libc, so this
 # compiles cleanly on Wolfi/glibc.
-apk add --no-cache gcc make openssl openssl-dev zlib-dev wget clang mold pigz
+apk add --no-cache gcc make pkgconf openssl openssl-dev zlib-dev wget clang mold pigz
 
 wget -q "https://github.com/alpinelinux/abuild/archive/refs/tags/${ABUILD_VER}.tar.gz" \
     -O /tmp/abuild.tar.gz
