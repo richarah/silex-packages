@@ -6,7 +6,7 @@ pkgdesc="POSIX 1003.1e capabilities library"
 url="https://sites.google.com/site/fullycapable/"
 arch="x86_64 aarch64"
 license="BSD-3-Clause OR GPL-2.0-only"
-makedepends="linux-headers perl"
+makedepends="linux-headers"
 subpackages="$pkgname-dev"
 provides="libcap-dev libcap2"
 source="https://www.kernel.org/pub/linux/libs/security/linux-privs/libcap2/libcap-$pkgver.tar.xz"
@@ -15,7 +15,9 @@ options="!check"
 
 build() {
 	cd "$builddir"
-	make \
+	# Skip progs/: mkcapshdoc.sh requires perl which is not reliably
+	# available on Wolfi.  We only need libcap.so and the headers.
+	make DIRS="libcap libpsx" \
 		CC="$CC" \
 		CFLAGS="$CFLAGS" \
 		LDFLAGS="$LDFLAGS" \
@@ -26,7 +28,7 @@ build() {
 
 package() {
 	cd "$builddir"
-	make install \
+	make DIRS="libcap libpsx" install \
 		DESTDIR="$pkgdir" \
 		lib=lib \
 		PAM_CAP=no \
