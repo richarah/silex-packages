@@ -95,6 +95,39 @@ Rules:
 - Pass `CC`, `CXX`, `CFLAGS`, `CXXFLAGS`, `LDFLAGS` explicitly to autotools.
   cmake and meson pick them up from the environment automatically.
 
+**provides= rules**
+- `provides=` must not include the package's own name. abuild's validate_provides()
+  rejects it. List only virtual/compat names that other packages depend on.
+
+**subpackages= rules**
+- Do not add `$pkgname-static` to `subpackages=`. `default_dev()` moves all `.a` files
+  to the `-dev` subpackage, leaving nothing for `default_static()` to claim. The build
+  will fail with `cd: can't cd to $subpkgdir`. Static libs are available from `-dev`.
+
+**cmake packages**
+- Always `cd "$builddir"` at the top of both `build()` and `package()`. Each abuild
+  function runs in `$srcdir`, not `$builddir`.
+- Always pass `-DCMAKE_INSTALL_LIBDIR=lib`. On x86_64, cmake defaults to `lib64`; abuild
+  rejects files under `/usr/lib64`.
+- If CMakeLists.txt is not at the tarball root, pass `-S <subdir>` explicitly.
+  Example: zstd's CMakeLists.txt is at `build/cmake/`, not the root.
+
+**LTO + two-step make (bzip2 pattern)**
+- Some packages compile object files then re-link them in a second make invocation.
+  With `-flto=thin`, the object files are LLVM bitcode and the re-link fails with
+  `file format not recognized`. Strip LTO flags for the first pass:
+  ```sh
+  _cflags_nolto=$(printf '%s' "$CFLAGS" | sed 's/-flto[^ ]*//g')
+  make -f Makefile-libbz2_so CC="$CC" CFLAGS="$_cflags_nolto -fPIC"
+  make CC="$CC" CFLAGS="$CFLAGS" LDFLAGS="$LDFLAGS" -j$JOBS
+  ```
+
+**Source URL reliability**
+- Prefer GitHub Releases URLs: `https://github.com/<org>/<repo>/releases/download/...`
+  They do not move when new versions are released.
+- gmplib.org is unreliable (frequent timeouts). Use the GNU mirror:
+  `https://ftp.gnu.org/gnu/gmp/gmp-$pkgver.tar.xz`
+
 ---
 
 ## Repository structure
@@ -149,12 +182,20 @@ The public key is committed to `keys/` and shipped inside Silex images.
 
 Two workflows:
 
-- **build.yml** — triggers on push to `aports/**` or `packages.list`.
+- **build.yml** — triggers on push to `aports/**`, `packages.list`, or `scripts/ci-build.sh`.
   Builds all packages for both architectures, signs the index, commits back to main.
 - **build-single.yml** — `workflow_dispatch` with `package` and `arch` inputs.
   Rebuilds one package without touching the rest.
 
-Both run inside `ghcr.io/richarah/silex:slim` (dog-fooding).
+Both run inside `cgr.dev/chainguard/wolfi-base:latest`. `scripts/ci-build.sh` builds
+abuild 3.15.0 from Alpine source (abuild is not in the Wolfi repo) and applies three
+patches before starting the build:
+
+1. `abuild-sign`: `sigtype=RSA` → `sigtype=RSA256` (SHA-256 signatures, required by Wolfi apk).
+2. `abuild`: `die "Failed to create index"` → `true` (Wolfi apk returns EKEYREJECTED on
+   intermediate index steps; our pipeline handles final indexing separately).
+3. `abuild` postcheck: uncompressed man pages auto-gzip instead of setting `e=1` (packages
+   that install uncompressed man pages are fixed in-place rather than rejected).
 
 ---
 
