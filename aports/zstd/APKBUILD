@@ -15,7 +15,7 @@ options="!check"
 
 build() {
 	cd "$builddir"
-	cmake -B build -S . \
+	cmake -B _build -S build/cmake \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DCMAKE_INSTALL_PREFIX=/usr \
 		-DCMAKE_C_COMPILER="$CC" \
@@ -29,10 +29,10 @@ build() {
 		-DZSTD_BUILD_STATIC=ON \
 		-DZSTD_ZLIB_SUPPORT=ON \
 		-G Ninja
-	ninja -C build -j$JOBS
+	ninja -C _build -j$JOBS
 }
 
 package() {
 	cd "$builddir"
-	DESTDIR="$pkgdir" ninja -C build install
+	DESTDIR="$pkgdir" ninja -C _build install
 }
