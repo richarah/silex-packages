@@ -28,7 +28,7 @@ jobs:
 
       - name: Install apk-tools (static binary)
         run: |
-          curl -fsSL \
+          curl -fsSL --retry 5 --retry-delay 10 \
               "https://gitlab.alpinelinux.org/api/v4/projects/5/packages/generic//v2.14.4/x86_64/apk.static" \
               -o /usr/local/bin/apk
           chmod +x /usr/local/bin/apk
@@ -92,7 +92,7 @@ jobs:
 
       - name: Install apk-tools (static binary)
         run: |
-          curl -fsSL \
+          curl -fsSL --retry 5 --retry-delay 10 \
               "https://gitlab.alpinelinux.org/api/v4/projects/5/packages/generic//v2.14.4/aarch64/apk.static" \
               -o /usr/local/bin/apk
           chmod +x /usr/local/bin/apk
