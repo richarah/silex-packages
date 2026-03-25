@@ -24,4 +24,6 @@ build() {
 package() {
 	cd "$builddir"
 	make install DESTDIR="$pkgdir"
+	# abuild requires man pages to be gzip-compressed
+	find "$pkgdir/usr/share/man" -name "*.3" -exec gzip -9 {} +
 }
