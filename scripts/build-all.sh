@@ -131,7 +131,7 @@ for pkg in $PKGS; do
     [ -f "$dir/APKBUILD" ] || { echo "=== skip $pkg (no APKBUILD) ==="; continue; }
     echo "=== building $pkg ==="
     cd "$dir"
-    abuild -r -P "$REPO"
+    abuild -F -r -P "$REPO"
     # Rebuild the local index and install all packages (including subpackages)
     # so the next abuild -r can resolve them by name from makedepends.
     _reindex_and_install

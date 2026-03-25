@@ -33,7 +33,7 @@ jobs:
         run: |
           docker run --rm \
             -v "$GITHUB_WORKSPACE:/work" -w /work \
-            -e ABUILD_ALLOW_RUNNING_AS_ROOT=1 \
+            -e ABUILD_ALLOW_RUNNING_AS_ROOT=1 -e FORCE_UNSAFE_CONFIGURE=1 \
             -e SILEX_PKG_RSA -e SILEX_PKG_RSA_PUB \
             cgr.dev/chainguard/wolfi-base:latest \
             sh scripts/ci-build.sh
@@ -58,7 +58,7 @@ jobs:
         run: |
           docker run --rm \
             -v "$GITHUB_WORKSPACE:/work" -w /work \
-            -e ABUILD_ALLOW_RUNNING_AS_ROOT=1 \
+            -e ABUILD_ALLOW_RUNNING_AS_ROOT=1 -e FORCE_UNSAFE_CONFIGURE=1 \
             -e SILEX_PKG_RSA -e SILEX_PKG_RSA_PUB \
             -e CFLAGS_MARCH \
             cgr.dev/chainguard/wolfi-base:latest \

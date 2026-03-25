@@ -5,6 +5,7 @@
 set -e
 
 MARCH="${CFLAGS_MARCH:-x86-64-v3}"
+export FORCE_UNSAFE_CONFIGURE=1
 ABUILD_VER=3.15.0
 
 # wolfi-base defaults to apk.cgr.dev/chainguard (auth-required, lacks build tools).

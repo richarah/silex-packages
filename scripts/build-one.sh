@@ -19,4 +19,4 @@ fi
 
 echo "=== building $pkg ==="
 cd "$dir"
-abuild -r -P "$REPO"
+abuild -F -r -P "$REPO"
