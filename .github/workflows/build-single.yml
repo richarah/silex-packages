@@ -44,21 +44,7 @@ jobs:
             -e SILEX_PKG_RSA -e SILEX_PKG_RSA_PUB \
             -e CFLAGS_MARCH \
             cgr.dev/chainguard/wolfi-base:latest \
-            sh -c '
-              MARCH="${CFLAGS_MARCH:-x86-64-v3}"
-              echo "https://packages.wolfi.dev/os" > /etc/apk/repositories
-              apk update -q
-              apk add --no-cache abuild build-base clang mold pigz
-              sed "s/-march=x86-64-v3/-march=$MARCH/" abuild.conf > /etc/abuild.conf
-              mkdir -p /etc/apk/keys ~/.abuild
-              printf "%s\n" "$SILEX_PKG_RSA"     > /etc/apk/keys/silex-packages.rsa
-              printf "%s\n" "$SILEX_PKG_RSA_PUB" > /etc/apk/keys/silex-packages.rsa.pub
-              cp /etc/apk/keys/silex-packages.rsa.pub keys/
-              echo PACKAGER_PRIVKEY=\"/etc/apk/keys/silex-packages.rsa\" > ~/.abuild/abuild.conf
-              chmod +x scripts/build-one.sh scripts/index.sh
-              scripts/build-one.sh "${{ inputs.package }}"
-              scripts/index.sh
-            '
+            sh scripts/ci-build.sh "${{ inputs.package }}"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -100,21 +86,7 @@ jobs:
             -e SILEX_PKG_RSA -e SILEX_PKG_RSA_PUB \
             -e CFLAGS_MARCH \
             cgr.dev/chainguard/wolfi-base:latest \
-            sh -c '
-              MARCH="${CFLAGS_MARCH:-x86-64-v3}"
-              echo "https://packages.wolfi.dev/os" > /etc/apk/repositories
-              apk update -q
-              apk add --no-cache abuild build-base clang mold pigz
-              sed "s/-march=x86-64-v3/-march=$MARCH/" abuild.conf > /etc/abuild.conf
-              mkdir -p /etc/apk/keys ~/.abuild
-              printf "%s\n" "$SILEX_PKG_RSA"     > /etc/apk/keys/silex-packages.rsa
-              printf "%s\n" "$SILEX_PKG_RSA_PUB" > /etc/apk/keys/silex-packages.rsa.pub
-              cp /etc/apk/keys/silex-packages.rsa.pub keys/
-              echo PACKAGER_PRIVKEY=\"/etc/apk/keys/silex-packages.rsa\" > ~/.abuild/abuild.conf
-              chmod +x scripts/build-one.sh scripts/index.sh
-              scripts/build-one.sh "${{ inputs.package }}"
-              scripts/index.sh
-            '
+            sh scripts/ci-build.sh "${{ inputs.package }}"
 
       - uses: actions/upload-artifact@v4
         with:
