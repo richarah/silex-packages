@@ -28,9 +28,9 @@ build() {
 		shared \
 		zlib \
 		no-async \
+		no-engine \
 		enable-ec_nistp_64_gcc_128 \
-		enable-ktls \
-		-DOPENSSL_NO_DEPRECATED
+		enable-ktls
 	make -j$JOBS
 }
 
