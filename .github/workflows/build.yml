@@ -156,13 +156,13 @@ jobs:
         run: |
           docker run --rm \
             --volume "$GITHUB_WORKSPACE/x86_64:/repo" \
+            --volume "$GITHUB_WORKSPACE/keys:/keys:ro" \
             alpine:3.21 sh -c '
               set -e
 
+              cp /keys/*.rsa.pub /etc/apk/keys/
               printf "file:///repo\n" > /etc/apk/repositories
-
-              # signing already verified by verify.sh in build jobs
-              apk update --allow-untrusted
+              apk update
 
               # Count packages in index
               count=$(tar -xOf /repo/APKINDEX.tar.gz APKINDEX 2>/dev/null \
@@ -173,7 +173,7 @@ jobs:
               # Install representative packages.
               # --force-depends: skip libc6 etc. from skip.list that are absent
               #   from this isolated file:// repo but present in any real base image.
-              apk add --allow-untrusted --force-depends \
+              apk add --force-depends \
                   libssl-dev zlib1g-dev libcurl4-openssl-dev
 
               # Verify expected headers were extracted
