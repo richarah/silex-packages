@@ -140,6 +140,18 @@ xxd
 socat
 tree
 
+# Runtime — commonly installed in Dockerfiles
+ca-certificates
+openssl
+procps
+gnupg
+xz-utils
+iproute2
+iputils-ping
+less
+lsof
+sudo
+
 # Extras commonly installed in Dockerfiles
 libprotobuf-dev
 protobuf-compiler
