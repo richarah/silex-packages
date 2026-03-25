@@ -66,4 +66,4 @@ if [ -n "$PRIVKEY" ] && [ -n "$PUBKEY" ]; then
     "$SCRIPTS_DIR/sign.sh" "$PRIVKEY" "$PUBKEY" "$OUTPUT"
 fi
 
-printf 'repacked: %s → %s\n' "$PKG" "$(basename "$OUTPUT")"
+printf 'repacked: %s -> %s\n' "$PKG" "$(basename "$OUTPUT")"

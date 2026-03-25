@@ -22,10 +22,9 @@ jobs:
         run: |
           apt-get update -qq
           apt-get install -y --no-install-recommends \
-              clang lld mold ninja-build cmake meson \
+              clang mold ninja-build cmake meson autoconf automake \
               dpkg-dev devscripts fakeroot build-essential \
-              curl ca-certificates git file \
-              pigz coreutils openssl
+              curl ca-certificates git file openssl
 
       - name: Install apk-tools (static binary)
         run: |
@@ -39,6 +38,7 @@ jobs:
           mkdir -p keys /tmp/silex-keys
           printf '%s' "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
           printf '%s' "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
+          chmod 600 /tmp/silex-keys/silex-packages.rsa
           cp /tmp/silex-keys/silex-packages.rsa.pub keys/
         env:
           SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
@@ -80,10 +80,9 @@ jobs:
         run: |
           apt-get update -qq
           apt-get install -y --no-install-recommends \
-              clang lld mold ninja-build cmake meson \
+              clang mold ninja-build cmake meson autoconf automake \
               dpkg-dev devscripts fakeroot build-essential \
-              curl ca-certificates git file \
-              pigz coreutils openssl
+              curl ca-certificates git file openssl
 
       - name: Install apk-tools (static binary)
         run: |
@@ -97,6 +96,7 @@ jobs:
           mkdir -p keys /tmp/silex-keys
           printf '%s' "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
           printf '%s' "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
+          chmod 600 /tmp/silex-keys/silex-packages.rsa
           cp /tmp/silex-keys/silex-packages.rsa.pub keys/
         env:
           SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
@@ -109,8 +109,7 @@ jobs:
           apt-get update -qq
 
       - name: Override march for aarch64
-        run: |
-          sed -i 's/-march=x86-64-v3/-march=armv8.2-a+crypto/' config/cflags.conf
+        run: sed -i 's/-march=x86-64-v3/-march=armv8.2-a+crypto/' config/cflags.conf
 
       - name: Make scripts executable
         run: chmod +x scripts/*.sh

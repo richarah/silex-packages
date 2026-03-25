@@ -4,11 +4,11 @@
 # recompile or repack, write to the two output files.
 #
 # Classification rules (in order):
-#   1. Name found in config/recompile-override.list → recompile
-#   2. Name found in config/repack-override.list    → repack
-#   3. Package contains versioned .so.N files        → recompile
+#   1. Name found in config/recompile-override.list -> recompile
+#   2. Name found in config/repack-override.list    -> repack
+#   3. Package contains versioned .so.N files        -> recompile
 #      (these are actual shared libraries that benefit from -O3/-flto)
-#   4. Otherwise                                     → repack
+#   4. Otherwise                                     -> repack
 #
 # "Versioned .so" means files matching *.so.[0-9]* in the package
 # content listing. Unversioned .so symlinks (as found in -dev packages)
@@ -45,13 +45,13 @@ while IFS= read -r pkg; do
     if [ -f "$RECOMPILE_OVERRIDE" ] && grep -qx "$pkg" "$RECOMPILE_OVERRIDE" 2>/dev/null; then
         printf '%s\n' "$pkg" >> "$RECOMPILE_OUT"
         n_recompile=$((n_recompile + 1))
-        printf 'classify: %s → recompile (override)\n' "$pkg"
+        printf 'classify: %s -> recompile (override)\n' "$pkg"
         continue
     fi
     if [ -f "$REPACK_OVERRIDE" ] && grep -qx "$pkg" "$REPACK_OVERRIDE" 2>/dev/null; then
         printf '%s\n' "$pkg" >> "$REPACK_OUT"
         n_repack=$((n_repack + 1))
-        printf 'classify: %s → repack (override)\n' "$pkg"
+        printf 'classify: %s -> repack (override)\n' "$pkg"
         continue
     fi
 
@@ -84,11 +84,11 @@ while IFS= read -r pkg; do
     if [ "$CLASSIFIED" = "recompile" ]; then
         printf '%s\n' "$pkg" >> "$RECOMPILE_OUT"
         n_recompile=$((n_recompile + 1))
-        printf 'classify: %s → recompile\n' "$pkg"
+        printf 'classify: %s -> recompile\n' "$pkg"
     else
         printf '%s\n' "$pkg" >> "$REPACK_OUT"
         n_repack=$((n_repack + 1))
-        printf 'classify: %s → repack\n' "$pkg"
+        printf 'classify: %s -> repack\n' "$pkg"
     fi
 done
 

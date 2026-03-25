@@ -1,6 +1,6 @@
 #!/bin/sh
 # build-all.sh
-# Full pipeline: resolve dependency closure → classify → repack/recompile → index.
+# Full pipeline: resolve dependency closure -> classify -> repack/recompile -> index.
 #
 # Environment:
 #   ARCH     — target architecture (default: $(uname -m))
@@ -28,9 +28,10 @@ mkdir -p "$REPO_DIR"
 export CC CXX CFLAGS CXXFLAGS LDFLAGS STRIP
 export PRIVKEY PUBKEY REPO_DIR ARCH SCRIPTS_DIR
 
-CLOSURE=/tmp/silex-closure.txt
-RECOMPILE_LIST=/tmp/silex-recompile.txt
-REPACK_LIST=/tmp/silex-repack.txt
+CLOSURE=$(mktemp)
+RECOMPILE_LIST=$(mktemp)
+REPACK_LIST=$(mktemp)
+trap 'rm -f "$CLOSURE" "$RECOMPILE_LIST" "$REPACK_LIST"' EXIT INT TERM
 
 printf '=== resolving dependency closure ===\n'
 "$SCRIPT_DIR/resolve-deps.sh" > "$CLOSURE"

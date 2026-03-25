@@ -21,7 +21,7 @@ SKIP="$REPO_ROOT/config/skip.list"
 
 [ -f "$SEEDS" ] || { printf 'resolve-deps: %s not found\n' "$SEEDS" >&2; exit 1; }
 
-# Build a combined skip pattern (one name per line → awk exact match)
+# Build a combined skip pattern (one name per line -> awk exact match)
 SKIP_TMP=$(mktemp)
 trap 'rm -f "$SKIP_TMP"' EXIT INT TERM
 
