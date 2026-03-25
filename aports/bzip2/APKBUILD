@@ -14,10 +14,13 @@ sha512sums="083f5e675d73f3233c7930ebe20425a533feedeaaa9d8cc86831312a6581cefbe6ed
 
 build() {
 	cd "$builddir"
-	# Shared library
+	# Shared library: strip -flto* flags — bzip2's two-step make (compile then
+	# link the same .o files) is incompatible with ThinLTO, which leaves LLVM
+	# bitcode in .o files that cannot be re-linked as a plain shared object.
+	_cflags_nolto=$(printf '%s' "$CFLAGS" | sed 's/-flto[^ ]*//g')
 	make -f Makefile-libbz2_so \
 		CC="$CC" \
-		CFLAGS="$CFLAGS -fPIC" \
+		CFLAGS="$_cflags_nolto -fPIC" \
 		-j$JOBS
 	# Static library and tools
 	make \
