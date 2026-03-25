@@ -6,6 +6,7 @@ on:
       - 'aports/**'
       - 'packages.list'
       - 'abuild.conf'
+      - 'scripts/ci-build.sh'
   workflow_dispatch:
 
 jobs:
