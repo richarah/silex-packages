@@ -34,6 +34,9 @@ cp /etc/apk/keys/silex-packages.rsa.pub keys/
 printf 'PACKAGER="Silex CI <noreply@richarah.github.io>"\nPACKAGER_PRIVKEY="/etc/apk/keys/silex-packages.rsa"\n' \
     > ~/.abuild/abuild.conf
 
+# abuild-sudo requires the abuild group to exist (even for root)
+addgroup -S abuild 2>/dev/null || groupadd -r abuild 2>/dev/null || true
+
 chmod +x scripts/build-all.sh scripts/build-one.sh scripts/index.sh
 if [ -n "${1:-}" ]; then
     scripts/build-one.sh "$1"
