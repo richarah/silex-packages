@@ -60,20 +60,25 @@ ABUILDCONF
 
 mkdir -p /etc/apk/keys ~/.abuild
 printf '%s\n' "$SILEX_PKG_RSA" > /etc/apk/keys/silex-packages.rsa
+# Write the public key to /tmp, NOT /etc/apk/keys/.
+# apk index --allow-untrusted suppresses ENOKEY (key not found) but NOT
+# EKEYREJECTED (key found, verification fails).  Keeping the pubkey out of
+# /etc/apk/keys/ during the build ensures every intermediate apk index call
+# gets ENOKEY, which --allow-untrusted then silences.  abuild-sign only uses
+# the pubkey path to derive the signature filename; it never reads the file.
 if [ -n "${SILEX_PKG_RSA_PUB:-}" ]; then
-    printf '%s\n' "$SILEX_PKG_RSA_PUB" > /etc/apk/keys/silex-packages.rsa.pub
+    printf '%s\n' "$SILEX_PKG_RSA_PUB" > /tmp/silex-packages.rsa.pub
 elif openssl rsa -in /etc/apk/keys/silex-packages.rsa -check -noout 2>/dev/null; then
-    # Private key is valid PEM; derive the public key from it.
     openssl rsa -in /etc/apk/keys/silex-packages.rsa -pubout \
-        -out /etc/apk/keys/silex-packages.rsa.pub
+        -out /tmp/silex-packages.rsa.pub
 else
     # Key is missing or malformed; generate an ephemeral pair for this run.
     printf 'WARNING: generating ephemeral signing key\n' >&2
     openssl genrsa -out /etc/apk/keys/silex-packages.rsa 4096 2>/dev/null
     openssl rsa -in /etc/apk/keys/silex-packages.rsa -pubout \
-        -out /etc/apk/keys/silex-packages.rsa.pub 2>/dev/null
+        -out /tmp/silex-packages.rsa.pub 2>/dev/null
 fi
-cp /etc/apk/keys/silex-packages.rsa.pub keys/
+cp /tmp/silex-packages.rsa.pub keys/
 printf 'PACKAGER="Silex CI <noreply@richarah.github.io>"\nPACKAGER_PRIVKEY="/etc/apk/keys/silex-packages.rsa"\n' \
     > ~/.abuild/abuild.conf
 
@@ -81,10 +86,10 @@ printf 'PACKAGER="Silex CI <noreply@richarah.github.io>"\nPACKAGER_PRIVKEY="/etc
 printf 'keypair-test' > /tmp/ktest
 openssl dgst -sha1 -sign /etc/apk/keys/silex-packages.rsa \
     -out /tmp/ktest.sig /tmp/ktest 2>/dev/null
-if openssl dgst -sha1 -verify /etc/apk/keys/silex-packages.rsa.pub \
+if openssl dgst -sha1 -verify /tmp/silex-packages.rsa.pub \
     -signature /tmp/ktest.sig /tmp/ktest 2>/dev/null; then
     printf 'KEYPAIR: OK (pub=%s)\n' \
-        "$(head -1 /etc/apk/keys/silex-packages.rsa.pub)"
+        "$(head -1 /tmp/silex-packages.rsa.pub)"
 else
     printf 'KEYPAIR: MISMATCH — package signatures will not verify\n' >&2
 fi
