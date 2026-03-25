@@ -64,6 +64,18 @@ else
     printf 'abuild update_abuildrepo_index die patched to true\n'
 fi
 
+# Patch postcheck's uncompressed man page check: auto-gzip instead of e=1.
+# abuild 3.15.0 postcheck() finds uncompressed man pages and sets e=1 (which
+# causes die "Sanity checks failed").  Replace the e=1 with a gzip command so
+# packages that install uncompressed man pages are fixed in place rather than
+# rejected.  The error message still prints for visibility.
+sed -i '/Found uncompressed man pages:/{n; n; s/\te=1$/\tfind "$dir"\/usr\/share\/man -name '"'"'*.[0-8]'"'"' -type f | xargs -r gzip -9 2>\/dev\/null/}' /usr/bin/abuild
+if grep -q 'xargs -r gzip' /usr/bin/abuild; then
+    printf 'abuild postcheck: auto-gzip man pages patch applied\n'
+else
+    printf 'WARNING: auto-gzip man pages patch did not apply\n' >&2
+fi
+
 # APK wrapper: prepends --allow-untrusted to every abuild-initiated apk call.
 # Needed for makedep resolution from the unsigned intermediate APKINDEX created
 # by build-all.sh's _reindex_and_install.
