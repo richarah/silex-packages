@@ -140,9 +140,55 @@ jobs:
           name: packages-aarch64
           path: aarch64/
 
+  test:
+    name: Test (x86_64)
+    needs: [build-x86_64]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages-x86_64
+          path: x86_64/
+
+      - name: Test package install
+        run: |
+          docker run --rm \
+            --volume "$GITHUB_WORKSPACE/x86_64:/repo" \
+            --volume "$GITHUB_WORKSPACE/keys:/keys:ro" \
+            alpine:3.21 sh -c '
+              set -e
+
+              cp /keys/silex-packages.rsa.pub /etc/apk/keys/
+              printf "file:///repo\n" > /etc/apk/repositories
+
+              # Verify APKINDEX is valid and signed
+              apk update
+
+              # Count packages in index
+              count=$(tar -xOf /repo/APKINDEX.tar.gz APKINDEX 2>/dev/null \
+                          | grep -c "^P:" || true)
+              printf "index: %d packages\n" "$count"
+              [ "$count" -gt 50 ] || { printf "FAIL: expected >50 packages in index\n"; exit 1; }
+
+              # Install representative packages.
+              # --force-depends: skip libc6 etc. from skip.list that are absent
+              #   from this isolated file:// repo but present in any real base image.
+              apk add --allow-untrusted --force-depends \
+                  libssl-dev zlib1g-dev libcurl4-openssl-dev
+
+              # Verify expected headers were extracted
+              test -f /usr/include/openssl/ssl.h || { printf "FAIL: ssl.h missing\n";  exit 1; }
+              test -f /usr/include/zlib.h        || { printf "FAIL: zlib.h missing\n"; exit 1; }
+              test -f /usr/include/curl/curl.h   || { printf "FAIL: curl.h missing\n"; exit 1; }
+
+              printf "install test: PASS\n"
+            '
+
   deploy:
     name: Deploy to Pages
-    needs: [build-x86_64, build-aarch64]
+    needs: [build-x86_64, build-aarch64, test]
     runs-on: ubuntu-latest
     permissions:
       contents: write
