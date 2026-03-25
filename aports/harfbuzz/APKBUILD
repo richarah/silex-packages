@@ -1,4 +1,4 @@
-# Maintainer: silex-ci <ci@silex>
+# Maintainer: Silex CI <noreply@richarah.github.io>
 pkgname=harfbuzz
 pkgver=10.2.0
 pkgrel=0

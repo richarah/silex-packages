@@ -1,4 +1,4 @@
-# Maintainer: silex-ci <ci@silex>
+# Maintainer: Silex CI <noreply@richarah.github.io>
 # Warning: GCC is a multi-hour build even on fast hardware.
 # --disable-bootstrap builds in one pass with the host compiler (clang).
 # This is correct: we are not building a self-hosting GCC, just a compiler.

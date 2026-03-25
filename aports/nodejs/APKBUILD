@@ -1,4 +1,4 @@
-# Maintainer: silex-ci <ci@silex>
+# Maintainer: Silex CI <noreply@richarah.github.io>
 # Warning: Node.js builds take 30-60 minutes even on fast hardware.
 # Node bundles V8, libuv, and most deps internally.
 # We link against system openssl and zlib to reduce binary size.

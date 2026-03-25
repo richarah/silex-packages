@@ -1,4 +1,4 @@
-# Maintainer: silex-ci <ci@silex>
+# Maintainer: Silex CI <noreply@richarah.github.io>
 pkgname=sqlite
 pkgver=3.48.0
 pkgrel=0

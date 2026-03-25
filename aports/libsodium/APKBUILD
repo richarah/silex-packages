@@ -1,4 +1,4 @@
-# Maintainer: silex-ci <ci@silex>
+# Maintainer: Silex CI <noreply@richarah.github.io>
 pkgname=libsodium
 pkgver=1.0.20
 pkgrel=0

@@ -1,4 +1,4 @@
-# Maintainer: silex-ci <ci@silex>
+# Maintainer: Silex CI <noreply@richarah.github.io>
 pkgname=libssh2
 pkgver=1.11.1
 pkgrel=0

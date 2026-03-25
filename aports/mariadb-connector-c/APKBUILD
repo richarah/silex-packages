@@ -1,4 +1,4 @@
-# Maintainer: silex-ci <ci@silex>
+# Maintainer: Silex CI <noreply@richarah.github.io>
 # Provides libmysqlclient-compatible ABI for Dockerfile apt-get installs of
 # libmysqlclient-dev / default-libmysqlclient-dev.
 pkgname=mariadb-connector-c

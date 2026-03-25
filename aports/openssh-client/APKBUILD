@@ -1,4 +1,4 @@
-# Maintainer: silex-ci <ci@silex>
+# Maintainer: Silex CI <noreply@richarah.github.io>
 # Installs only the client binaries (ssh, scp, sftp, ssh-keygen, ssh-add, etc.).
 # Does not install sshd.
 pkgname=openssh-client

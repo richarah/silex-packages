@@ -1,4 +1,4 @@
-# Maintainer: silex-ci <ci@silex>
+# Maintainer: Silex CI <noreply@richarah.github.io>
 # Note: builds libpq and pg_config only; server binaries are not packaged.
 pkgname=postgresql
 pkgver=17.2

@@ -1,4 +1,4 @@
-# Maintainer: silex-ci <ci@silex>
+# Maintainer: Silex CI <noreply@richarah.github.io>
 pkgname=libxcb
 pkgver=1.17.0
 pkgrel=0
