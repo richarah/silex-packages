@@ -23,12 +23,14 @@ jobs:
     runs-on: ${{ inputs.arch == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     if: inputs.arch != 'both'
     container:
-      image: ghcr.io/richarah/silex:slim
+      image: cgr.dev/chainguard/wolfi-base:latest
+    env:
+      ABUILD_ALLOW_RUNNING_AS_ROOT: "1"
     steps:
       - uses: actions/checkout@v4
 
       - name: Install build tools
-        run: apk add --no-cache abuild alpine-sdk pigz
+        run: apk add --no-cache abuild build-base clang mold pigz
 
       - name: Configure abuild
         run: |
@@ -78,12 +80,14 @@ jobs:
     runs-on: ${{ matrix.runner }}
     if: inputs.arch == 'both'
     container:
-      image: ghcr.io/richarah/silex:slim
+      image: cgr.dev/chainguard/wolfi-base:latest
+    env:
+      ABUILD_ALLOW_RUNNING_AS_ROOT: "1"
     steps:
       - uses: actions/checkout@v4
 
       - name: Install build tools
-        run: apk add --no-cache abuild alpine-sdk pigz
+        run: apk add --no-cache abuild build-base clang mold pigz
 
       - name: Configure abuild
         run: |

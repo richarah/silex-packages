@@ -274,11 +274,11 @@ Replace YOUR_COMMAND_HERE with whatever you need:
 
 ## Why Alpine containers for local builds
 
-abuild is an Alpine tool. It's not in Debian, Ubuntu, Wolfi, or
-anywhere else. For local builds you need an Alpine container.
+abuild is an Alpine tool. It's not in Debian or Ubuntu. For local
+builds you need an Alpine container.
 
-CI is different: the build.yml workflow runs inside
-`ghcr.io/richarah/silex:slim`, which installs abuild from the Wolfi
-repo at job start. That's the dog-food path. Local development still
-uses Alpine containers because it's simpler and doesn't require a
-published silex:slim image.
+CI runs inside `cgr.dev/chainguard/wolfi-base:latest`, which also has
+abuild available from the Wolfi repo. Wolfi is glibc-based (same as
+silex:slim's runtime), so packages built there link correctly. Local
+development uses Alpine containers because they don't require a
+registry login and are simpler to invoke ad-hoc.

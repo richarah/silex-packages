@@ -24,12 +24,14 @@ jobs:
     needs: lint
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/richarah/silex:slim
+      image: cgr.dev/chainguard/wolfi-base:latest
+    env:
+      ABUILD_ALLOW_RUNNING_AS_ROOT: "1"
     steps:
       - uses: actions/checkout@v4
 
       - name: Install build tools
-        run: apk add --no-cache abuild alpine-sdk pigz
+        run: apk add --no-cache abuild build-base clang mold pigz
 
       - name: Configure abuild
         run: |
@@ -60,12 +62,14 @@ jobs:
     needs: lint
     runs-on: ubuntu-24.04-arm
     container:
-      image: ghcr.io/richarah/silex:slim
+      image: cgr.dev/chainguard/wolfi-base:latest
+    env:
+      ABUILD_ALLOW_RUNNING_AS_ROOT: "1"
     steps:
       - uses: actions/checkout@v4
 
       - name: Install build tools
-        run: apk add --no-cache abuild alpine-sdk pigz
+        run: apk add --no-cache abuild build-base clang mold pigz
 
       - name: Configure abuild
         run: |
