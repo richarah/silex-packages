@@ -30,6 +30,8 @@ CLANGPP_BIN=$(ls /usr/bin/clang++-[0-9]* 2>/dev/null | head -1)
 CC_BIN="${CLANG_BIN:-clang}"
 CXX_BIN="${CLANGPP_BIN:-clang++}"
 printf 'resolved CC=%s  CXX=%s\n' "$CC_BIN" "$CXX_BIN" >&2
+ls -la /usr/bin/clang* /usr/lib/llvm*/bin/clang* 2>/dev/null >&2 || true
+find /etc/clang /usr/lib/clang /usr/share/openssf* -name "*.cfg" -o -name "flags" 2>/dev/null >&2 | head -20 || true
 
 wget -q "https://github.com/alpinelinux/abuild/archive/refs/tags/${ABUILD_VER}.tar.gz" \
     -O /tmp/abuild.tar.gz
@@ -50,6 +52,9 @@ export STRIP="strip --strip-unneeded"
 ABUILDCONF
 echo "=== /etc/abuild.conf ===" >&2
 cat /etc/abuild.conf >&2
+echo 'int main(){return 0;}' > /tmp/conftest.c
+printf '=== test compile output: [%s] ===\n' \
+    "$("$CC_BIN" -c "-O3" "-march=$MARCH" "-flto=thin" "-fomit-frame-pointer" /tmp/conftest.c -o /tmp/conftest.o 2>&1 || true)" >&2
 
 mkdir -p /etc/apk/keys ~/.abuild
 printf '%s\n' "$SILEX_PKG_RSA"     > /etc/apk/keys/silex-packages.rsa
