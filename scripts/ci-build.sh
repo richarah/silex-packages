@@ -69,7 +69,7 @@ fi
 # causes die "Sanity checks failed").  Replace the e=1 with a gzip command so
 # packages that install uncompressed man pages are fixed in place rather than
 # rejected.  The error message still prints for visibility.
-sed -i '/Found uncompressed man pages:/{n; n; s/\te=1$/\tfind "$dir"\/usr\/share\/man -name '"'"'*.[0-8]'"'"' -type f | xargs -r gzip -9 2>\/dev\/null/}' /usr/bin/abuild
+sed -i '/Found uncompressed man pages:/,/^[[:space:]]*e=1[[:space:]]*$/{/^[[:space:]]*e=1[[:space:]]*$/s/.*/\tfind "$dir"\/usr\/share\/man -name '"'"'*.[0-8]'"'"' -type f | xargs -r gzip -9 2>\/dev\/null/}' /usr/bin/abuild
 if grep -q 'xargs -r gzip' /usr/bin/abuild; then
     printf 'abuild postcheck: auto-gzip man pages patch applied\n'
 else

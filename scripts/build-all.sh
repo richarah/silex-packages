@@ -17,8 +17,8 @@ if ! grep -qxF "$REPODIR" /etc/apk/repositories 2>/dev/null; then
     mv /tmp/repos.tmp /etc/apk/repositories
 fi
 
-# _reindex: rebuild APKINDEX from every .apk in REPODIR, then install all
-# packages from it.  Called after each package build so subsequent abuild -r
+# _reindex_and_install: rebuild APKINDEX from every .apk in REPODIR, then
+# install all packages from it.  Called after each wave so subsequent abuild -r
 # invocations can resolve our packages (including subpackages like libcurl,
 # gfortran, g++) by name when satisfying makedepends.
 #
@@ -34,111 +34,121 @@ _reindex_and_install() {
     done
 }
 
-# Build order: dependencies before dependents.
-# Rationale for each group:
+# _build_wave: build all listed packages in parallel, then reindex.
+# Packages within a wave have no inter-dependencies; they only depend on
+# packages from earlier waves (already installed by _reindex_and_install).
 #
-#   zlib bzip2 xz zstd   — compression, no inter-deps
-#   gmp                  — math, needed by gnutls
-#   ncurses              — terminal, needed by readline libedit util-linux
-#   readline             — needs ncurses; needed by sqlite postgresql python3
-#   libffi               — needed by gnutls python3
-#   expat                — needed by git gettext python3
-#   pcre2                — needed by git
-#   libyaml              — no deps from our repo
-#   openssl              — needs zlib; needed by curl gnutls postgresql git openssh-client python3 nodejs
-#   nghttp2 c-ares       — need openssl/zlib; needed by curl nodejs
-#   libssh2              — needs openssl zlib; needed by curl
-#   curl                 — needs openssl zlib nghttp2 libssh2 c-ares zstd; needed by git
-#   gnutls               — needs gmp libffi zlib (nettle/libtasn1/p11-kit from Alpine)
-#   libxml2              — needs zlib xz; needed by libxslt
-#   libxslt              — needs libxml2
-#   nasm                 — build tool; needed by libjpeg-turbo
-#   libjpeg-turbo        — needs nasm (build tool)
-#   libpng               — needs zlib; needed by libtiff libwebp
-#   libtiff              — needs zlib libjpeg-turbo xz zstd; needed by libwebp
-#   libwebp              — needs libpng libjpeg-turbo libtiff
-#   giflib               — no deps from our repo
-#   libedit              — needs ncurses
-#   libcap               — no deps from our repo
-#   eudev                — no deps from our repo (gperf is a build tool, from Alpine)
-#   util-linux           — needs ncurses zlib
-#   sqlite               — needs zlib readline
-#   postgresql           — needs openssl readline zlib
-#   mariadb-connector-c  — needs openssl zlib
-#   yasm gperf           — build tools, no deps from our repo
-#   flex                 — no deps from our repo
-#   autoconf automake libtool gettext — autotools chain
-#   bison                — needs gettext-dev; placed after our gettext for cleanliness
-#   openblas             — after gcc so it links our libgfortran
-#   gcc                  — needs gmp zlib (mpfr/mpc1/isl from Alpine); produces gfortran g++
-#   file patch unzip jq  — utilities
-#   git                  — needs openssl zlib expat pcre2 curl-dev
-#   openssh-client       — needs openssl zlib
-#   python3              — needs openssl zlib bzip2 xz readline ncurses sqlite libffi expat
-#   nodejs               — needs openssl zlib c-ares nghttp2 python3
-PKGS="
-zlib
-bzip2
-xz
-zstd
-gmp
-ncurses
-readline
-libffi
-expat
-pcre2
-libyaml
-openssl
-nghttp2
-c-ares
-libssh2
-curl
-gnutls
-libxml2
-libxslt
-nasm
-libjpeg-turbo
-libpng
-libtiff
-libwebp
-giflib
-libedit
-libcap
-eudev
-util-linux
-sqlite
-postgresql
-mariadb-connector-c
-yasm
-gperf
-flex
-autoconf
-automake
-libtool
-gettext
-bison
-gcc
-openblas
-file
-patch
-unzip
-jq
-git
-openssh-client
-python3
-nodejs
-"
+# Uses a temp file to propagate failures from background subshells.
+_wave_fail=/tmp/_wave_fail_$$
+trap 'rm -f "$_wave_fail"' EXIT INT TERM
 
-for pkg in $PKGS; do
-    dir="$APORTS/$pkg"
-    [ -f "$dir/APKBUILD" ] || { echo "=== skip $pkg (no APKBUILD) ==="; continue; }
-    echo "=== building $pkg ==="
-    cd "$dir"
-    abuild -F -r -P "$REPO"
-    # Rebuild the local index and install all packages (including subpackages)
-    # so the next abuild -r can resolve them by name from makedepends.
+_build_wave() {
+    rm -f "$_wave_fail"
+    for pkg in "$@"; do
+        (
+            dir="$APORTS/$pkg"
+            [ -f "$dir/APKBUILD" ] || { echo "=== skip $pkg (no APKBUILD) ==="; exit 0; }
+            echo "=== building $pkg ==="
+            cd "$dir"
+            if ! abuild -F -r -P "$REPO"; then
+                echo "=== FAILED $pkg ===" >&2
+                touch "$_wave_fail"
+                exit 1
+            fi
+            echo "=== done $pkg ==="
+        ) &
+    done
+    wait
+    if [ -f "$_wave_fail" ]; then
+        echo "=== wave failed ===" >&2
+        exit 1
+    fi
     _reindex_and_install
-    cd "$REPO"
-done
+}
+
+# Build order: dependencies before dependents, grouped into parallel waves.
+#
+# Wave 1 — no deps on any custom-built package (all makedeps from Wolfi):
+#   zlib bzip2 xz zstd        compression, no inter-deps
+#   gmp                        math, needed by gnutls/gcc
+#   ncurses                    terminal, needed by readline/libedit/util-linux
+#   libffi                     needed by gnutls/python3
+#   expat                      needed by git/gettext/python3
+#   pcre2                      needed by git
+#   libyaml                    no deps from our repo
+#   nasm                       build tool; needed by libjpeg-turbo
+#   giflib                     no deps from our repo
+#   libcap                     no deps from our repo
+#   eudev                      no deps from our repo
+#   yasm gperf                 build tools, no deps
+#   flex                       no deps
+#   autoconf automake libtool  autotools chain
+#   gettext                    needed by bison
+#   file patch unzip jq        utilities
+#   c-ares                     DNS library, no inter-deps
+_build_wave \
+    zlib bzip2 xz zstd \
+    gmp libffi expat pcre2 libyaml \
+    ncurses \
+    nasm giflib libcap eudev \
+    yasm gperf flex \
+    autoconf automake libtool gettext \
+    file patch unzip jq \
+    c-ares
+
+# Wave 2 — needs wave-1 packages:
+#   readline libedit           need ncurses
+#   openssl                    needs zlib
+#   libpng                     needs zlib
+#   libjpeg-turbo              needs nasm (build tool)
+#   libxml2                    needs zlib xz
+#   gnutls                     needs gmp libffi zlib
+#   bison                      needs gettext
+#   gcc                        needs gmp zlib; produces gfortran g++
+_build_wave \
+    readline libedit \
+    openssl \
+    libpng \
+    libjpeg-turbo \
+    libxml2 \
+    gnutls \
+    bison \
+    gcc
+
+# Wave 3 — needs wave-2 packages:
+#   libssh2 nghttp2            need openssl zlib
+#   libxslt                    needs libxml2
+#   libtiff                    needs zlib libjpeg-turbo xz zstd
+#   sqlite                     needs zlib readline
+#   util-linux                 needs ncurses zlib
+#   postgresql                 needs openssl readline zlib
+#   mariadb-connector-c        needs openssl zlib
+#   openssh-client             needs openssl zlib
+#   openblas                   needs gcc (for gfortran)
+_build_wave \
+    libssh2 nghttp2 \
+    libxslt \
+    libtiff \
+    sqlite \
+    util-linux \
+    postgresql mariadb-connector-c \
+    openssh-client \
+    openblas
+
+# Wave 4 — needs wave-3 packages:
+#   curl                       needs openssl zlib nghttp2 libssh2 c-ares zstd
+#   libwebp                    needs libpng libjpeg-turbo libtiff
+#   python3                    needs openssl zlib bzip2 xz readline ncurses sqlite libffi expat
+_build_wave \
+    curl \
+    libwebp \
+    python3
+
+# Wave 5 — needs wave-4 packages:
+#   git                        needs openssl zlib expat pcre2 curl
+#   nodejs                     needs openssl zlib c-ares nghttp2 python3
+_build_wave \
+    git \
+    nodejs
 
 echo "=== all packages built ==="

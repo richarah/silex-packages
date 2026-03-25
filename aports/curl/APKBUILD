@@ -21,7 +21,7 @@ makedepends="
 # libcurl: the shared library (runtime dep for programs that link -lcurl)
 # curl-dev: headers, .pc, unversioned .so symlinks
 # curl-static: libcurl.a
-subpackages="libcurl:libs curl-dev:dev curl-static:static"
+subpackages="libcurl:libs curl-dev:dev"
 builddir="$srcdir/curl-$pkgver"
 provides="libcurl4-openssl-dev libcurl4 libcurl-dev"
 source="https://github.com/curl/curl/releases/download/curl-${pkgver//./_}/curl-$pkgver.tar.xz"
@@ -47,6 +47,7 @@ build() {
 		-DCURL_ZLIB=ON \
 		-DCURL_ZSTD=ON \
 		-DCURL_BROTLI=ON \
+		-DCURL_USE_LIBPSL=OFF \
 		-DBUILD_TESTING=OFF \
 		-DBUILD_CURL_EXE=ON \
 		-G Ninja
@@ -64,8 +65,4 @@ package() {
 libs() {
 	pkgdesc="Multi-protocol transfer library"
 	default_libs
-}
-
-static() {
-	default_static
 }
