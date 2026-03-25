@@ -22,29 +22,8 @@ jobs:
     name: ${{ inputs.package }} / ${{ inputs.arch }}
     runs-on: ${{ inputs.arch == 'aarch64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     if: inputs.arch != 'both'
-    container:
-      image: cgr.dev/chainguard/wolfi-base:latest
-    env:
-      ABUILD_ALLOW_RUNNING_AS_ROOT: "1"
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install build tools
-        run: apk add --no-cache abuild build-base clang mold pigz
-
-      - name: Configure abuild
-        run: |
-          if [ "${{ inputs.arch }}" = "aarch64" ]; then
-            sed 's/-march=x86-64-v3/-march=armv8.2-a+crypto/' abuild.conf \
-              > /etc/abuild.conf
-          else
-            cp abuild.conf /etc/abuild.conf
-          fi
-          mkdir -p /etc/apk/keys
-          echo "${{ secrets.SILEX_PKG_RSA }}" > /etc/apk/keys/silex-packages.rsa
-          echo "${{ secrets.SILEX_PKG_RSA_PUB }}" > /etc/apk/keys/silex-packages.rsa.pub
-          mkdir -p ~/.abuild
-          echo 'PACKAGER_PRIVKEY="/etc/apk/keys/silex-packages.rsa"' > ~/.abuild/abuild.conf
 
       - name: Verify provides=
         run: |
@@ -54,17 +33,35 @@ jobs:
           fi
 
       - name: Build ${{ inputs.package }}
+        env:
+          SILEX_PKG_RSA: ${{ secrets.SILEX_PKG_RSA }}
+          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
+          CFLAGS_MARCH: ${{ inputs.arch == 'aarch64' && 'armv8.2-a+crypto' || 'x86-64-v3' }}
         run: |
-          chmod +x scripts/build-one.sh
-          scripts/build-one.sh "${{ inputs.package }}"
-
-      - name: Update index
-        run: scripts/index.sh
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work" -w /work \
+            -e ABUILD_ALLOW_RUNNING_AS_ROOT=1 \
+            -e SILEX_PKG_RSA -e SILEX_PKG_RSA_PUB \
+            -e CFLAGS_MARCH \
+            cgr.dev/chainguard/wolfi-base:latest \
+            sh -c '
+              MARCH="${CFLAGS_MARCH:-x86-64-v3}"
+              apk add --no-cache abuild build-base clang mold pigz
+              sed "s/-march=x86-64-v3/-march=$MARCH/" abuild.conf > /etc/abuild.conf
+              mkdir -p /etc/apk/keys ~/.abuild
+              printf "%s\n" "$SILEX_PKG_RSA"     > /etc/apk/keys/silex-packages.rsa
+              printf "%s\n" "$SILEX_PKG_RSA_PUB" > /etc/apk/keys/silex-packages.rsa.pub
+              cp /etc/apk/keys/silex-packages.rsa.pub keys/
+              echo PACKAGER_PRIVKEY=\"/etc/apk/keys/silex-packages.rsa\" > ~/.abuild/abuild.conf
+              chmod +x scripts/build-one.sh scripts/index.sh
+              scripts/build-one.sh "${{ inputs.package }}"
+              scripts/index.sh
+            '
 
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.package }}-${{ inputs.arch }}
-          path: ${{ inputs.arch }}/
+          path: ${{ inputs.arch == 'aarch64' && 'aarch64' || 'x86_64' }}/
 
   build-both:
     strategy:
@@ -79,25 +76,8 @@ jobs:
     name: ${{ inputs.package }} / ${{ matrix.arch }}
     runs-on: ${{ matrix.runner }}
     if: inputs.arch == 'both'
-    container:
-      image: cgr.dev/chainguard/wolfi-base:latest
-    env:
-      ABUILD_ALLOW_RUNNING_AS_ROOT: "1"
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install build tools
-        run: apk add --no-cache abuild build-base clang mold pigz
-
-      - name: Configure abuild
-        run: |
-          sed "s/-march=x86-64-v3/-march=${{ matrix.cflags_march }}/" abuild.conf \
-            > /etc/abuild.conf
-          mkdir -p /etc/apk/keys
-          echo "${{ secrets.SILEX_PKG_RSA }}" > /etc/apk/keys/silex-packages.rsa
-          echo "${{ secrets.SILEX_PKG_RSA_PUB }}" > /etc/apk/keys/silex-packages.rsa.pub
-          mkdir -p ~/.abuild
-          echo 'PACKAGER_PRIVKEY="/etc/apk/keys/silex-packages.rsa"' > ~/.abuild/abuild.conf
 
       - name: Verify provides=
         run: |
@@ -107,12 +87,30 @@ jobs:
           fi
 
       - name: Build ${{ inputs.package }}
+        env:
+          SILEX_PKG_RSA: ${{ secrets.SILEX_PKG_RSA }}
+          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
+          CFLAGS_MARCH: ${{ matrix.cflags_march }}
         run: |
-          chmod +x scripts/build-one.sh
-          scripts/build-one.sh "${{ inputs.package }}"
-
-      - name: Update index
-        run: scripts/index.sh
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work" -w /work \
+            -e ABUILD_ALLOW_RUNNING_AS_ROOT=1 \
+            -e SILEX_PKG_RSA -e SILEX_PKG_RSA_PUB \
+            -e CFLAGS_MARCH \
+            cgr.dev/chainguard/wolfi-base:latest \
+            sh -c '
+              MARCH="${CFLAGS_MARCH:-x86-64-v3}"
+              apk add --no-cache abuild build-base clang mold pigz
+              sed "s/-march=x86-64-v3/-march=$MARCH/" abuild.conf > /etc/abuild.conf
+              mkdir -p /etc/apk/keys ~/.abuild
+              printf "%s\n" "$SILEX_PKG_RSA"     > /etc/apk/keys/silex-packages.rsa
+              printf "%s\n" "$SILEX_PKG_RSA_PUB" > /etc/apk/keys/silex-packages.rsa.pub
+              cp /etc/apk/keys/silex-packages.rsa.pub keys/
+              echo PACKAGER_PRIVKEY=\"/etc/apk/keys/silex-packages.rsa\" > ~/.abuild/abuild.conf
+              chmod +x scripts/build-one.sh scripts/index.sh
+              scripts/build-one.sh "${{ inputs.package }}"
+              scripts/index.sh
+            '
 
       - uses: actions/upload-artifact@v4
         with:

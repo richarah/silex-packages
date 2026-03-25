@@ -23,34 +23,20 @@ jobs:
     name: x86_64
     needs: lint
     runs-on: ubuntu-latest
-    container:
-      image: cgr.dev/chainguard/wolfi-base:latest
-    env:
-      ABUILD_ALLOW_RUNNING_AS_ROOT: "1"
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install build tools
-        run: apk add --no-cache abuild build-base clang mold pigz
-
-      - name: Configure abuild
+      - name: Build and index packages
+        env:
+          SILEX_PKG_RSA: ${{ secrets.SILEX_PKG_RSA }}
+          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
         run: |
-          cp abuild.conf /etc/abuild.conf
-          mkdir -p /etc/apk/keys
-          echo "${{ secrets.SILEX_PKG_RSA }}" > /etc/apk/keys/silex-packages.rsa
-          echo "${{ secrets.SILEX_PKG_RSA_PUB }}" > /etc/apk/keys/silex-packages.rsa.pub
-          cp /etc/apk/keys/silex-packages.rsa.pub keys/
-          # abuild needs a key configured in ~/.abuild/
-          mkdir -p ~/.abuild
-          echo 'PACKAGER_PRIVKEY="/etc/apk/keys/silex-packages.rsa"' > ~/.abuild/abuild.conf
-
-      - name: Build all packages
-        run: |
-          chmod +x scripts/*.sh
-          scripts/build-all.sh
-
-      - name: Generate and sign index
-        run: scripts/index.sh
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work" -w /work \
+            -e ABUILD_ALLOW_RUNNING_AS_ROOT=1 \
+            -e SILEX_PKG_RSA -e SILEX_PKG_RSA_PUB \
+            cgr.dev/chainguard/wolfi-base:latest \
+            sh scripts/ci-build.sh
 
       - uses: actions/upload-artifact@v4
         with:
@@ -61,35 +47,22 @@ jobs:
     name: aarch64
     needs: lint
     runs-on: ubuntu-24.04-arm
-    container:
-      image: cgr.dev/chainguard/wolfi-base:latest
-    env:
-      ABUILD_ALLOW_RUNNING_AS_ROOT: "1"
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install build tools
-        run: apk add --no-cache abuild build-base clang mold pigz
-
-      - name: Configure abuild
+      - name: Build and index packages
+        env:
+          SILEX_PKG_RSA: ${{ secrets.SILEX_PKG_RSA }}
+          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
+          CFLAGS_MARCH: armv8.2-a+crypto
         run: |
-          # Override CFLAGS for aarch64
-          sed 's/-march=x86-64-v3/-march=armv8.2-a+crypto/' abuild.conf \
-            > /etc/abuild.conf
-          mkdir -p /etc/apk/keys
-          echo "${{ secrets.SILEX_PKG_RSA }}" > /etc/apk/keys/silex-packages.rsa
-          echo "${{ secrets.SILEX_PKG_RSA_PUB }}" > /etc/apk/keys/silex-packages.rsa.pub
-          cp /etc/apk/keys/silex-packages.rsa.pub keys/
-          mkdir -p ~/.abuild
-          echo 'PACKAGER_PRIVKEY="/etc/apk/keys/silex-packages.rsa"' > ~/.abuild/abuild.conf
-
-      - name: Build all packages
-        run: |
-          chmod +x scripts/*.sh
-          scripts/build-all.sh
-
-      - name: Generate and sign index
-        run: scripts/index.sh
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/work" -w /work \
+            -e ABUILD_ALLOW_RUNNING_AS_ROOT=1 \
+            -e SILEX_PKG_RSA -e SILEX_PKG_RSA_PUB \
+            -e CFLAGS_MARCH \
+            cgr.dev/chainguard/wolfi-base:latest \
+            sh scripts/ci-build.sh
 
       - uses: actions/upload-artifact@v4
         with:
