@@ -130,6 +130,7 @@ export ABUILD_GZIP="pigz -9"
 export STRIP="strip --strip-unneeded"
 export APK="/usr/local/bin/apk-silex"
 export ABUILD_APK_INDEX_OPTS="--allow-untrusted"
+export WGET_OPTS="--tries=5 --retry-connrefused --retry-on-http-error=503,429,500"
 ABUILDCONF
 
 # PACKAGER_PRIVKEY: path to private key (outside /etc/apk/keys/).
