@@ -43,6 +43,18 @@ make -C /tmp/abuild-${ABUILD_VER} CC=gcc CFLAGS="-O2 -g -pedantic" prefix=/usr
 make -C /tmp/abuild-${ABUILD_VER} install prefix=/usr
 rm -rf /tmp/abuild-${ABUILD_VER} /tmp/abuild.tar.gz
 
+# Patch update_abuildrepo_index in the installed abuild script to hardcode
+# --allow-untrusted before the subcommand.  This eliminates any dependency on
+# $APK or $ABUILD_APK_INDEX_OPTS being picked up from /etc/abuild.conf.
+# With our pubkey OUT of /etc/apk/keys/, apk returns ENOKEY (bypassable by
+# --allow-untrusted) rather than EKEYREJECTED (not bypassable).
+sed -i 's|\$APK index \$ABUILD_APK_INDEX_OPTS|/usr/bin/apk --allow-untrusted index --allow-untrusted|' /usr/bin/abuild
+if grep -q 'apk --allow-untrusted index' /usr/bin/abuild; then
+    printf 'abuild update_abuildrepo_index patched for --allow-untrusted\n'
+else
+    printf 'WARNING: abuild patch did not match — update_abuildrepo_index unchanged\n' >&2
+fi
+
 # Patch abuild-sign to use RSA256 (SHA-256) instead of RSA (SHA-1).
 # RSA256 changes the embedded sig filename to .SIGN.RSA256.keyname.pub; Wolfi's
 # modern apk-tools understands this prefix and verifies with SHA-256.
@@ -119,6 +131,7 @@ printf '=== /etc/apk/keys/ ===\n'; ls /etc/apk/keys/
 printf '=== abuild-sign sigtype ===\n'; grep 'sigtype=' /usr/bin/abuild-sign | head -3
 printf '=== apk wrapper ===\n'; cat /usr/local/bin/apk-silex
 printf '=== pubkey location ===\n'; ls -la /tmp/silex-packages.rsa.pub 2>/dev/null || printf 'NOT FOUND\n'
+printf '=== abuild APK patch ===\n'; grep 'apk --allow-untrusted index' /usr/bin/abuild | head -2 || printf 'NOT PATCHED\n'
 
 chmod +x scripts/build-all.sh scripts/build-one.sh scripts/index.sh
 if [ -n "${1:-}" ]; then
