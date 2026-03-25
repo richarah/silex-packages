@@ -20,7 +20,7 @@ apk add --no-cache gcc make pkgconf openssl openssl-dev zlib-dev wget clang mold
 wget -q "https://github.com/alpinelinux/abuild/archive/refs/tags/${ABUILD_VER}.tar.gz" \
     -O /tmp/abuild.tar.gz
 tar -xzf /tmp/abuild.tar.gz -C /tmp
-make -C /tmp/abuild-${ABUILD_VER} CC=gcc prefix=/usr
+make -C /tmp/abuild-${ABUILD_VER} CC=gcc CFLAGS="-O2 -g -pedantic" prefix=/usr
 make -C /tmp/abuild-${ABUILD_VER} install prefix=/usr
 rm -rf /tmp/abuild-${ABUILD_VER} /tmp/abuild.tar.gz
 
