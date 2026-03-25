@@ -32,19 +32,6 @@ build() {
 		CXXFLAGS="$CXXFLAGS" \
 		LDFLAGS="$LDFLAGS"
 	make -j$JOBS
-	# Build non-wide variant (needed by some packages)
-	mkdir -p buildnarrow
-	cd buildnarrow
-	../configure \
-		--prefix=/usr \
-		--with-shared \
-		--with-normal \
-		--without-debug \
-		--without-ada \
-		CC="$CC" \
-		CFLAGS="$CFLAGS" \
-		LDFLAGS="$LDFLAGS"
-	make -j$JOBS
 }
 
 package() {
@@ -67,6 +54,3 @@ terminfo_base() {
 	cp -a "$pkgdir/usr/share/terminfo/l" "$subpkgdir/usr/share/terminfo/" 2>/dev/null || true
 }
 
-static() {
-	default_static
-}
