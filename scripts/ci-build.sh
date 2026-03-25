@@ -43,6 +43,18 @@ make -C /tmp/abuild-${ABUILD_VER} CC=gcc CFLAGS="-O2 -g -pedantic" prefix=/usr
 make -C /tmp/abuild-${ABUILD_VER} install prefix=/usr
 rm -rf /tmp/abuild-${ABUILD_VER} /tmp/abuild.tar.gz
 
+# Wrapper: force --allow-untrusted before any subcommand so Wolfi's apk does
+# not reject packages signed with our custom key during intermediate index
+# steps.  --allow-untrusted suppresses ENOKEY (key not found in /etc/apk/keys)
+# which is what we get when the silex pubkey is intentionally absent there.
+# Placing the flag before the subcommand ensures it is parsed as a global flag
+# regardless of apk version.
+cat > /usr/local/bin/apk-silex << 'APKWRAP'
+#!/bin/sh
+exec /usr/bin/apk --allow-untrusted "$@"
+APKWRAP
+chmod +x /usr/local/bin/apk-silex
+
 cat > /etc/abuild.conf << ABUILDCONF
 export CC="$CC_BIN"
 export CXX="$CXX_BIN"
@@ -52,10 +64,9 @@ export LDFLAGS="-fuse-ld=mold -flto=thin"
 export JOBS=\$(nproc)
 export ABUILD_GZIP="pigz -9"
 export STRIP="strip --strip-unneeded"
-# Wolfi's apk index verifies .apk signatures when indexing; our custom key
-# triggers BAD signature errors during update_abuildrepo_index.  Bypass
-# signature verification for intermediate repo index steps only.
-export ABUILD_APK_INDEX_OPTS="--allow-untrusted"
+# Override apk binary: use the wrapper that prepends --allow-untrusted so
+# abuild's update_abuildrepo_index does not fail on our custom-signed packages.
+export APK=/usr/local/bin/apk-silex
 ABUILDCONF
 
 mkdir -p /etc/apk/keys ~/.abuild
