@@ -49,16 +49,20 @@ rm -rf /tmp/abuild-${ABUILD_VER} /tmp/abuild.tar.gz
 sed -i 's/sigtype=RSA$/sigtype=RSA256/' /usr/bin/abuild-sign
 printf 'abuild-sign sigtype patched to RSA256\n'
 
-# Override update_abuildrepo_index with a no-op.
-# abuild calls this after each package build to update the repo index.
-# Wolfi's apk 2.14.x returns EKEYREJECTED (not bypassed by --allow-untrusted)
-# when verifying package signatures during `apk index`, regardless of key setup.
+# Neutralise update_abuildrepo_index's failure path.
+# abuild calls this after each package build to run `apk index *.apk`.
+# Wolfi apk 2.14.x returns EKEYREJECTED during that index step (not bypassed
+# by --allow-untrusted); the || branch then calls die "Failed to create index".
+# Replace that die with `true` so the function silently succeeds on index failure.
 # Our own pipeline handles indexing:
-#   - build-all.sh's _reindex_and_install: unsigned intermediate index (apk add --allow-untrusted)
-#   - scripts/index.sh: final signed APKINDEX via abuild-sign after all packages built
-# Shell redefines a function when the same name appears again; the last definition wins.
-printf '\nupdate_abuildrepo_index() { return 0; }\n' >> /usr/bin/abuild
-printf 'abuild update_abuildrepo_index overridden to no-op\n'
+#   - build-all.sh _reindex_and_install: unsigned intermediate index + apk add --allow-untrusted
+#   - scripts/index.sh: final abuild-signed APKINDEX published to Pages
+sed -i 's/die "Failed to create index"/true/' /usr/bin/abuild
+if grep -q 'die "Failed to create index"' /usr/bin/abuild; then
+    printf 'WARNING: update_abuildrepo_index die patch did not apply\n' >&2
+else
+    printf 'abuild update_abuildrepo_index die patched to true\n'
+fi
 
 # APK wrapper: prepends --allow-untrusted to every abuild-initiated apk call.
 # Needed for makedep resolution from the unsigned intermediate APKINDEX created
@@ -134,7 +138,7 @@ printf '=== abuild-sign sigtype ===\n'; grep 'sigtype=' /usr/bin/abuild-sign | h
 printf '=== apk wrapper ===\n'; cat /usr/local/bin/apk-silex
 printf '=== privkey location ===\n'; ls -la /root/.abuild/keys/silex-packages.rsa 2>/dev/null || printf 'NOT FOUND\n'
 printf '=== pubkey in /etc/apk/keys/ ===\n'; ls -la /etc/apk/keys/silex-packages.rsa.pub 2>/dev/null || printf 'NOT FOUND\n'
-printf '=== update_abuildrepo_index override ===\n'; tail -3 /usr/bin/abuild
+printf '=== update_abuildrepo_index die patch ===\n'; grep -c 'die "Failed to create index"' /usr/bin/abuild && printf 'NOT PATCHED\n' || printf 'patched (die removed)\n'
 
 chmod +x scripts/build-all.sh scripts/build-one.sh scripts/index.sh
 if [ -n "${1:-}" ]; then
