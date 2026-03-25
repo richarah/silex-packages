@@ -15,23 +15,33 @@ options="!check"
 
 build() {
 	cd "$builddir"
-	# Skip progs/: mkcapshdoc.sh requires perl which is not reliably
-	# available on Wolfi.  We only need libcap.so and the headers.
-	make DIRS="libcap libpsx" \
+	# Build libcap and libpsx directly; skip progs/ (mkcapshdoc.sh needs perl,
+	# not reliably available on Wolfi).  libcap 2.73 Makefile does not support
+	# a DIRS= override at the root level, so invoke each subdir explicitly.
+	make -C libcap \
 		CC="$CC" \
 		CFLAGS="$CFLAGS" \
 		LDFLAGS="$LDFLAGS" \
 		lib=lib \
 		PAM_CAP=no \
 		-j$JOBS
+	make -C libpsx \
+		CC="$CC" \
+		CFLAGS="$CFLAGS" \
+		LDFLAGS="$LDFLAGS" \
+		lib=lib \
+		-j$JOBS
 }
 
 package() {
 	cd "$builddir"
-	make DIRS="libcap libpsx" install \
+	make -C libcap install \
 		DESTDIR="$pkgdir" \
 		lib=lib \
 		PAM_CAP=no \
 		RAISE_SETFCAP=no
+	make -C libpsx install \
+		DESTDIR="$pkgdir" \
+		lib=lib
 }
 

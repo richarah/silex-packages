@@ -89,10 +89,31 @@ else
     printf 'abuild cleanup_makedepends: del patched to true\n'
 fi
 
-# APK wrapper: prepends --allow-untrusted to every abuild-initiated apk call.
-# Needed for makedep resolution from the unsigned intermediate APKINDEX created
-# by build-all.sh's _reindex_and_install.
-printf '#!/bin/sh\nexec /usr/bin/apk --allow-untrusted "$@"\n' > /usr/local/bin/apk-silex
+# APK wrapper: prepends --allow-untrusted and serializes calls via a mkdir lock.
+# --allow-untrusted: needed for makedep resolution from the unsigned intermediate
+#   APKINDEX created by build-all.sh's _reindex_and_install.
+# Serialization: with 25+ packages launching apk add simultaneously in a parallel
+#   wave, apk's DB flock times out (~30 s) causing cascade "builddeps failed"
+#   errors.  The mkdir lock queues callers so only one apk runs at a time.
+cat > /usr/local/bin/apk-silex << 'APKWRAP'
+#!/bin/sh
+_lock=/tmp/silex-apk.lock
+_maxwait=120
+_waited=0
+while [ "$_waited" -lt "$_maxwait" ]; do
+    if mkdir "$_lock" 2>/dev/null; then
+        trap 'rmdir "$_lock" 2>/dev/null' EXIT INT TERM
+        /usr/bin/apk --allow-untrusted "$@"
+        _ec=$?
+        rmdir "$_lock" 2>/dev/null
+        trap - EXIT INT TERM
+        exit $_ec
+    fi
+    sleep 1
+    _waited=$((_waited + 1))
+done
+exec /usr/bin/apk --allow-untrusted "$@"
+APKWRAP
 chmod +x /usr/local/bin/apk-silex
 
 # Keys: private key is stored OUTSIDE /etc/apk/keys/ to avoid apk loading it

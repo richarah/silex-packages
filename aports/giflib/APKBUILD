@@ -13,6 +13,14 @@ source="https://sourceforge.net/projects/giflib/files/giflib-$pkgver.tar.gz"
 sha512sums="0865ab2b1904fa14640c655fdb14bb54244ad18a66e358565c00287875d00912343f9be8bfac7658cc0146200d626f7ec9160d7a339f20ba3be6b9941d73975f  giflib-5.2.2.tar.gz"
 options="!check"
 
+prepare() {
+	default_prepare
+	# giflib 5.2.2 'all' target builds docs which require xmlto (not on Wolfi).
+	# Remove doc/giflib.html from all: deps and the doc install from install:.
+	sed -i 's/ doc\/giflib\.html//' "$builddir/Makefile"
+	sed -i '/cd doc && make install/d' "$builddir/Makefile"
+}
+
 build() {
 	cd "$builddir"
 	make \
