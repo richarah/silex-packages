@@ -1,0 +1,4 @@
+# Packages to force-repack even if classify.sh detects .so files.
+# Use for thin wrappers, transitional packages, or packages where
+# compilation overhead exceeds any possible runtime benefit.
+# One Debian package name per line. Lines starting with # are ignored.

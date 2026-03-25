@@ -3,72 +3,132 @@ name: Build packages
 on:
   push:
     paths:
-      - 'aports/**'
-      - 'packages.list'
-      - 'abuild.conf'
-      - 'scripts/ci-build.sh'
+      - 'config/**'
+      - 'scripts/**'
+  schedule:
+    - cron: '0 4 * * 1'  # weekly Monday 04:00 UTC; catches bookworm security updates
   workflow_dispatch:
 
 jobs:
-  lint:
-    name: Lint APKBUILDs
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - name: Verify provides= present in all APKBUILDs
-        run: |
-          chmod +x scripts/verify-provides.sh
-          scripts/verify-provides.sh
-
   build-x86_64:
     name: x86_64
-    needs: lint
     runs-on: ubuntu-latest
+    container:
+      image: debian:bookworm
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - name: Build and index packages
-        env:
-          SILEX_PKG_RSA: ${{ secrets.SILEX_PKG_RSA }}
-          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
+      - name: Install build dependencies
         run: |
-          docker run --rm \
-            -v "$GITHUB_WORKSPACE:/work" -w /work \
-            -e ABUILD_ALLOW_RUNNING_AS_ROOT=1 -e FORCE_UNSAFE_CONFIGURE=1 \
-            -e SILEX_PKG_RSA -e SILEX_PKG_RSA_PUB \
-            cgr.dev/chainguard/wolfi-base:latest \
-            sh scripts/ci-build.sh
+          apt-get update -qq
+          apt-get install -y --no-install-recommends \
+              clang lld mold ninja-build cmake meson \
+              dpkg-dev devscripts fakeroot build-essential \
+              curl ca-certificates git file \
+              pigz coreutils openssl
+
+      - name: Install apk-tools (static binary)
+        run: |
+          curl -fsSL \
+              "https://gitlab.alpinelinux.org/alpine/apk-tools/-/releases/v2.14.4/downloads/apk.static" \
+              -o /usr/local/bin/apk
+          chmod +x /usr/local/bin/apk
+
+      - name: Setup signing keys
+        run: |
+          mkdir -p keys /tmp/silex-keys
+          printf '%s' "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
+          printf '%s' "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
+          cp /tmp/silex-keys/silex-packages.rsa.pub keys/
+        env:
+          SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
+          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
+
+      - name: Enable deb-src
+        run: |
+          grep '^deb ' /etc/apt/sources.list \
+              | sed 's/^deb /deb-src /' >> /etc/apt/sources.list
+          apt-get update -qq
+
+      - name: Make scripts executable
+        run: chmod +x scripts/*.sh
+
+      - name: Build all packages
+        run: scripts/build-all.sh
+        env:
+          ARCH:    x86_64
+          PRIVKEY: /tmp/silex-keys/silex-packages.rsa
+          PUBKEY:  /tmp/silex-keys/silex-packages.rsa.pub
+
+      - name: Verify
+        run: scripts/verify.sh x86_64
 
       - uses: actions/upload-artifact@v4
         with:
           name: packages-x86_64
-          path: aports/x86_64/
+          path: x86_64/
 
   build-aarch64:
     name: aarch64
-    needs: lint
     runs-on: ubuntu-24.04-arm
+    container:
+      image: debian:bookworm
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - name: Build and index packages
-        env:
-          SILEX_PKG_RSA: ${{ secrets.SILEX_PKG_RSA }}
-          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
-          CFLAGS_MARCH: armv8.2-a+crypto
+      - name: Install build dependencies
         run: |
-          docker run --rm \
-            -v "$GITHUB_WORKSPACE:/work" -w /work \
-            -e ABUILD_ALLOW_RUNNING_AS_ROOT=1 -e FORCE_UNSAFE_CONFIGURE=1 \
-            -e SILEX_PKG_RSA -e SILEX_PKG_RSA_PUB \
-            -e CFLAGS_MARCH \
-            cgr.dev/chainguard/wolfi-base:latest \
-            sh scripts/ci-build.sh
+          apt-get update -qq
+          apt-get install -y --no-install-recommends \
+              clang lld mold ninja-build cmake meson \
+              dpkg-dev devscripts fakeroot build-essential \
+              curl ca-certificates git file \
+              pigz coreutils openssl
+
+      - name: Install apk-tools (static binary)
+        run: |
+          curl -fsSL \
+              "https://gitlab.alpinelinux.org/alpine/apk-tools/-/releases/v2.14.4/downloads/apk.static.aarch64" \
+              -o /usr/local/bin/apk
+          chmod +x /usr/local/bin/apk
+
+      - name: Setup signing keys
+        run: |
+          mkdir -p keys /tmp/silex-keys
+          printf '%s' "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
+          printf '%s' "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
+          cp /tmp/silex-keys/silex-packages.rsa.pub keys/
+        env:
+          SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
+          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
+
+      - name: Enable deb-src
+        run: |
+          grep '^deb ' /etc/apt/sources.list \
+              | sed 's/^deb /deb-src /' >> /etc/apt/sources.list
+          apt-get update -qq
+
+      - name: Override march for aarch64
+        run: |
+          sed -i 's/-march=x86-64-v3/-march=armv8.2-a+crypto/' config/cflags.conf
+
+      - name: Make scripts executable
+        run: chmod +x scripts/*.sh
+
+      - name: Build all packages
+        run: scripts/build-all.sh
+        env:
+          ARCH:    aarch64
+          PRIVKEY: /tmp/silex-keys/silex-packages.rsa
+          PUBKEY:  /tmp/silex-keys/silex-packages.rsa.pub
+
+      - name: Verify
+        run: scripts/verify.sh aarch64
 
       - uses: actions/upload-artifact@v4
         with:
           name: packages-aarch64
-          path: aports/aarch64/
+          path: aarch64/
 
   deploy:
     name: Deploy to Pages
@@ -77,22 +137,22 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - uses: actions/download-artifact@v4
         with:
           name: packages-x86_64
-          path: aports/x86_64/
+          path: x86_64/
 
       - uses: actions/download-artifact@v4
         with:
           name: packages-aarch64
-          path: aports/aarch64/
+          path: aarch64/
 
       - name: Commit and push
         run: |
           git config user.name "silex-ci"
           git config user.email "ci@silex"
-          git add aports/x86_64/ aports/aarch64/ keys/
+          git add x86_64/ aarch64/ keys/
           git commit -m "rebuild $(date -u +%Y-%m-%dT%H:%M:%SZ)" || true
           git push

@@ -1,0 +1,99 @@
+# silex-packages seed list
+# One Debian package name per line.
+# The dependency resolver expands this to the full transitive closure.
+# Lines starting with # are ignored.
+
+# Crypto / TLS
+libssl-dev
+libgnutls28-dev
+libssh2-1-dev
+
+# Compression
+zlib1g-dev
+liblzma-dev
+libbz2-dev
+libzstd-dev
+
+# Database clients
+libpq-dev
+libsqlite3-dev
+default-libmysqlclient-dev
+
+# Networking
+libcurl4-openssl-dev
+libnghttp2-dev
+libc-ares-dev
+
+# XML / text processing
+libxml2-dev
+libxslt1-dev
+libexpat1-dev
+libffi-dev
+libyaml-dev
+
+# Image processing
+libjpeg-dev
+libpng-dev
+libtiff-dev
+libwebp-dev
+libgif-dev
+
+# Terminal / readline
+libreadline-dev
+libncurses-dev
+libedit-dev
+
+# Math
+libopenblas-dev
+libgmp-dev
+
+# System
+libpcre2-dev
+libcap-dev
+uuid-dev
+
+# Build tools
+build-essential
+cmake
+ninja-build
+autoconf
+automake
+libtool
+pkg-config
+gettext
+bison
+flex
+nasm
+yasm
+gperf
+
+# Languages
+python3-dev
+nodejs
+
+# Utilities
+git
+openssh-client
+curl
+wget
+patch
+file
+unzip
+jq
+
+# Extras commonly installed in Dockerfiles
+libprotobuf-dev
+protobuf-compiler
+libevent-dev
+libuv1-dev
+libzmq3-dev
+libhiredis-dev
+libsnappy-dev
+liblz4-dev
+libicu-dev
+libonig-dev
+libsodium-dev
+libfreetype-dev
+libfontconfig1-dev
+libharfbuzz-dev
+libcairo2-dev

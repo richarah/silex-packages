@@ -1,0 +1,29 @@
+# Packages to force-recompile even if classify.sh would choose repack.
+# These are hot-path shared libraries where -O3 / -flto / -march makes
+# a measurable difference to downstream compilation speed or runtime.
+# One Debian package name per line. Lines starting with # are ignored.
+
+# Core compression (used in virtually every build)
+zlib1g
+liblzma5
+libbz2-1.0
+libzstd1
+
+# TLS / crypto (used in every network call)
+libssl3
+libcrypto3
+
+# Common runtime libraries
+libcurl4
+libxml2
+libexpat1
+libpcre2-8-0
+libsqlite3-0
+libpq5
+libffi8
+
+# Image libraries (used by heavy build pipelines like OpenCV, PIL)
+libpng16-16
+libjpeg62-turbo
+libtiff6
+libwebp7
