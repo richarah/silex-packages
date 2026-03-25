@@ -86,11 +86,20 @@ elif [ -f CMakeLists.txt ]; then
     DESTDIR="$STAGING" ninja -C _build install
 
 elif [ -f meson.build ]; then
+    # Try with -Dtests=false first; not all projects define this option so
+    # fall back without it if meson setup rejects it.
     meson setup _build \
         --prefix=/usr \
         --libdir=lib \
         --buildtype=release \
-        -Db_lto=true
+        -Db_lto=true \
+        -Dtests=false 2>/dev/null \
+    || { rm -rf _build
+         meson setup _build \
+             --prefix=/usr \
+             --libdir=lib \
+             --buildtype=release \
+             -Db_lto=true; }
     ninja -C _build -j"$(nproc)"
     DESTDIR="$STAGING" ninja -C _build install
 

@@ -120,7 +120,12 @@ jobs:
           apt-get update -qq
 
       - name: Override march for aarch64
-        run: sed -i 's/-march=x86-64-v3/-march=armv8.2-a+crypto/' config/cflags.conf
+        run: |
+          sed -i 's/-march=x86-64-v3/-march=armv8.2-a+crypto/' config/cflags.conf
+          # Use binutils 'as' instead of clang's integrated assembler.
+          # Required for packages (e.g. pixman) whose ARM64 assembly uses
+          # GNU AS extensions (.endfunc) that clang's integrated assembler rejects.
+          sed -i 's/-fomit-frame-pointer/-fomit-frame-pointer -fno-integrated-as/' config/cflags.conf
 
       - name: Make scripts executable
         run: chmod +x scripts/*.sh
