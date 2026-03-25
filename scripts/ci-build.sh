@@ -66,6 +66,13 @@ printf 'PACKAGER="Silex CI <noreply@richarah.github.io>"\nPACKAGER_PRIVKEY="/etc
 # abuild-sudo requires the abuild group to exist (even for root)
 addgroup -S abuild 2>/dev/null || groupadd -r abuild 2>/dev/null || true
 
+# abuild's readconfig() in functions.sh uses `local _CC=cc` as a default,
+# making /etc/abuild.conf's CC= setting ignored.  CC/CXX must be exported
+# in the *calling environment* before abuild runs so readconfig saves and
+# restores the right value via CC=${_CC-$CC}.
+export CC="$CC_BIN"
+export CXX="$CXX_BIN"
+
 chmod +x scripts/build-all.sh scripts/build-one.sh scripts/index.sh
 if [ -n "${1:-}" ]; then
     scripts/build-one.sh "$1"
