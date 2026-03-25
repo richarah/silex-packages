@@ -14,7 +14,8 @@ sha512sums="3285e14d94bc736d6caddfe7ad7e3c6a6e69d49b079c989bb3e8aba4da62c022e382
 options="!check"
 
 build() {
-	cmake -B build -S "$builddir" \
+	cd "$builddir"
+	cmake -B build -S . \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DCMAKE_INSTALL_PREFIX=/usr \
 		-DCMAKE_C_COMPILER="$CC" \
@@ -30,6 +31,7 @@ build() {
 }
 
 package() {
+	cd "$builddir"
 	DESTDIR="$pkgdir" ninja -C build install
 }
 

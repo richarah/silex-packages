@@ -17,7 +17,8 @@ sha512sums="396ce2a36937d49ec96eb239312118c736f46383d2906b7142d9695e795f310af282
 options="!check"
 
 build() {
-	cmake -B build -S "$builddir" \
+	cd "$builddir"
+	cmake -B build -S . \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DCMAKE_INSTALL_PREFIX=/usr \
 		-DCMAKE_C_COMPILER="$CC" \
@@ -32,6 +33,7 @@ build() {
 }
 
 package() {
+	cd "$builddir"
 	DESTDIR="$pkgdir" ninja -C build install
 	# Compatibility symlink expected by programs linking -lmysqlclient
 	ln -sf libmariadb.so "$pkgdir/usr/lib/libmysqlclient.so" 2>/dev/null || true
