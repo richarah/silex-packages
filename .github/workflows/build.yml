@@ -48,6 +48,7 @@ jobs:
           make -j$(nproc) \
               CC=clang \
               CFLAGS="-O2 -include /tmp/strlcpy_compat.h" \
+              LDFLAGS="-L./libfetch -lfetch -lssl -lcrypto" \
               STATIC=y \
               LUA=no
           install -m755 src/apk.static /usr/local/bin/apk
@@ -139,6 +140,7 @@ jobs:
           make -j$(nproc) \
               CC=clang \
               CFLAGS="-O2 -include /tmp/strlcpy_compat.h" \
+              LDFLAGS="-L./libfetch -lfetch -lssl -lcrypto" \
               STATIC=y \
               LUA=no
           install -m755 src/apk.static /usr/local/bin/apk
@@ -265,27 +267,6 @@ jobs:
           name: packages-aarch64
           path: aarch64/
 
-      - name: Debug - check packages after download
-        run: |
-          echo "=== x86_64 directory contents ==="
-          ls -la x86_64/ 2>/dev/null || echo "x86_64/ directory does NOT exist!"
-          echo ""
-          echo "=== aarch64 directory contents ==="
-          ls -la aarch64/ 2>/dev/null || echo "aarch64/ directory does NOT exist!"
-          echo ""
-          echo "=== APKINDEX in x86_64? ==="
-          if [ -f x86_64/APKINDEX.tar.gz ]; then
-            echo "✓ APKINDEX.tar.gz found! Size: $(du -h x86_64/APKINDEX.tar.gz | cut -f1)"
-          else
-            echo "✗ APKINDEX.tar.gz MISSING!"
-            echo "Files in x86_64/:"
-            ls -la x86_64/ 2>/dev/null || echo "(directory empty or missing)"
-          fi
-          echo ""
-          echo "=== Total sizes ==="
-          du -sh x86_64/ 2>/dev/null || echo "x86_64/ missing"
-          du -sh aarch64/ 2>/dev/null || echo "aarch64/ missing"
-
       - name: Build Jekyll site
         uses: actions/jekyll-build-pages@v1
         with:
@@ -295,48 +276,9 @@ jobs:
       - name: Copy packages into _site
         run: |
           mkdir -p ./_site/x86_64 ./_site/aarch64 ./_site/keys
-          if [ -d x86_64 ]; then
-            cp -r x86_64/* ./_site/x86_64/
-            echo "✓ Copied x86_64 packages"
-          else
-            echo "✗ x86_64 directory missing!"
-          fi
-          if [ -d aarch64 ]; then
-            cp -r aarch64/* ./_site/aarch64/
-            echo "✓ Copied aarch64 packages"
-          else
-            echo "✗ aarch64 directory missing!"
-          fi
-          if [ -d keys ]; then
-            cp -r keys/* ./_site/keys/
-            echo "✓ Copied keys"
-          else
-            echo "✗ keys directory missing!"
-          fi
-
-      - name: Debug - verify packages in _site
-        run: |
-          echo "=== _site/x86_64 contents ==="
-          ls -la ./_site/x86_64/ 2>/dev/null | head -20 || echo "_site/x86_64/ missing!"
-          echo ""
-          echo "=== APKINDEX in _site/x86_64? ==="
-          if [ -f ./_site/x86_64/APKINDEX.tar.gz ]; then
-            echo "✓ APKINDEX.tar.gz found in _site!"
-          else
-            echo "✗ APKINDEX.tar.gz NOT in _site!"
-          fi
-          echo ""
-          echo "=== Total size of _site ==="
-          du -sh ./_site/
-
-      - name: Safety check - ensure no private keys in deployment
-        run: |
-          if find . -name "*.rsa" ! -name "*.pub" -type f 2>/dev/null | grep -q .; then
-            echo "ERROR: Found private key file in deployment!"
-            find . -name "*.rsa" ! -name "*.pub" -type f
-            exit 1
-          fi
-          echo "✓ Safety check passed - no private keys found"
+          cp -r x86_64/* ./_site/x86_64/
+          cp -r aarch64/* ./_site/aarch64/
+          cp -r keys/* ./_site/keys/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
