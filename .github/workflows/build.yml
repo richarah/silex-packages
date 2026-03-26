@@ -43,7 +43,6 @@ jobs:
           echo "e9d7398d5f70badea596903599bfa1e05b64d67d13c929da9f0eee85828260c6  /tmp/apk-tools.tar.gz" | sha256sum -c -
           tar xf /tmp/apk-tools.tar.gz -C /tmp
           cd /tmp/apk-tools-v3.0.5
-          # strlcpy is absent from glibc < 2.38 (Debian bookworm = 2.36); inject compat.
           printf '#pragma once\n#include <string.h>\n#ifndef strlcpy\nstatic inline size_t strlcpy(char*d,const char*s,size_t n){size_t l=strlen(s);if(n){size_t c=l<n-1?l:n-1;__builtin_memcpy(d,s,c);d[c]=0;}return l;}\n#endif\n' \
               > /tmp/strlcpy_compat.h
           make -j$(nproc) \
@@ -52,7 +51,6 @@ jobs:
               STATIC=y \
               LUA=no
           install -m755 src/apk.static /usr/local/bin/apk
-          # Verify zstd was linked in (ZSTD_ symbols present in static binary).
           nm src/apk.static 2>/dev/null | grep -q 'ZSTD_compress' \
               && printf 'apk: zstd support: yes\n' \
               || printf 'apk: zstd support: no (ZSTD_compress not found)\n'
@@ -76,7 +74,6 @@ jobs:
 
       - name: Enable deb-src
         run: |
-          # DEB822 format (debian:bookworm uses sources.list.d/debian.sources)
           if [ -f /etc/apt/sources.list.d/debian.sources ]; then
             sed -i 's/^Types: deb$/Types: deb deb-src/' \
                 /etc/apt/sources.list.d/debian.sources
@@ -174,9 +171,6 @@ jobs:
       - name: Override march for aarch64
         run: |
           sed -i 's/-march=x86-64-v3/-march=armv8.2-a+crypto/' config/cflags.conf
-          # Use binutils 'as' instead of clang's integrated assembler.
-          # Required for packages (e.g. pixman) whose ARM64 assembly uses
-          # GNU AS extensions (.endfunc) that clang's integrated assembler rejects.
           sed -i 's/-fomit-frame-pointer/-fomit-frame-pointer -fno-integrated-as/' config/cflags.conf
 
       - name: Make scripts executable
@@ -224,26 +218,17 @@ jobs:
           mkdir -p "$R/etc/apk/keys" "$R/var/cache/apk" \
                    "$R/var/lib/apk" "$R/lib/apk/db"
           cp keys/*.rsa.pub "$R/etc/apk/keys/"
-          # Repository base URL without arch; apk v3 appends /$arch automatically.
           printf 'file://%s\n' "$GITHUB_WORKSPACE" > "$R/etc/apk/repositories"
           printf 'x86_64\n' > "$R/etc/apk/arch"
 
-          # apk v3 requires explicit database initialization before first use.
-          # Test runner is non-root; --usermode allows initdb without root.
           /usr/local/bin/apk --root "$R" add --initdb --usermode
-
           /usr/local/bin/apk --root "$R" --allow-untrusted update
 
-          # apk mkndx (v3 format) produces a binary ADB file, not a plain tar;
-          # count available packages via apk list after the update.
           count=$(/usr/local/bin/apk --root "$R" --allow-untrusted list --available \
                       2>/dev/null | wc -l || echo 0)
           printf 'index: %d packages\n' "$count"
           [ "$count" -gt 50 ] || { printf 'FAIL: expected >50 packages in index\n'; exit 1; }
 
-          # apk v3 removed --force-depends; use 'extract' which skips dep checks.
-          # Packages are already downloaded as artifacts, so use local files.
-          # Use packages from the repack path (not recompile) for reliability.
           /usr/local/bin/apk extract --allow-untrusted \
               --destination "$R" \
               x86_64/zlib1g-dev-*.x86_64.apk \
@@ -260,30 +245,42 @@ jobs:
     needs: [build-x86_64, build-aarch64, test]
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/download-artifact@v4
+      - name: Download x86_64 packages
+        uses: actions/download-artifact@v4
         with:
           name: packages-x86_64
           path: x86_64/
 
-      - uses: actions/download-artifact@v4
+      - name: Download aarch64 packages
+        uses: actions/download-artifact@v4
         with:
           name: packages-aarch64
           path: aarch64/
 
-      - name: Commit and push
-        run: |
-          git config user.name "silex-ci"
-          git config user.email "ci@silex"
-          # Github CI being a PITA
-          touch .nojekyll
-          git add -f .nojekyll
-          # Stage additions, modifications, AND deletions (e.g. v2→v3 format migration).
-          # -f to force-add files that are in .gitignore (*.apk, APKINDEX.tar.gz).
-          git add -f x86_64/ aarch64/ keys/
-          git commit -m "rebuild $(date -u +%Y-%m-%dT%H:%M:%SZ)" || true
-          git pull --rebase origin main
-          git push
+      - name: Download keys
+        uses: actions/download-artifact@v4
+        with:
+          name: packages-x86_64
+          path: keys/
+        continue-on-error: true
+        
+      - name: Create .nojekyll
+        run: touch .nojekyll
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact for Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
