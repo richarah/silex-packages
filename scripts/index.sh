@@ -1,19 +1,6 @@
 #!/bin/sh
 # index.sh
-# Generate and sign APKINDEX.tar.gz for the x86_64 and aarch64 package dirs.
-#
-# Environment:
-#   PRIVKEY  — path to RSA private key (used by apk mkndx --sign-key)
-#   REPO_DIR — explicit directory to index (optional;
-#              defaults to both x86_64/ and aarch64/ under repo root)
-#
-# Requires: apk (static binary)
-#
-# Uses 'apk mkndx' (v3 index format) instead of 'apk index' (v2).
-# The v2 format (apk index) produces a gzip'd tar; prepending a separate
-# signature gzip stream (old abuild-sign method) makes apk v3 report
-# "file format is invalid or inconsistent". apk mkndx integrates signing
-# via --sign-key and produces a format apk v3 update can read.
+# Generate and sign APKINDEX.tar.gz using apk v3 syntax
 
 set -e
 
@@ -31,21 +18,17 @@ do_index() {
 
     printf 'index: %s (%d packages)\n' "$DIR" "$count"
 
+    TEMP_INDEX="${DIR}/APKINDEX.tmp"
+    
+    apk index --arch "$ARCH" --output "$TEMP_INDEX" "$DIR"/*.apk
+
     if [ -f "$PRIVKEY" ] && [ -s "$PRIVKEY" ]; then
-        (cd "$DIR" && apk mkndx \
-            --allow-untrusted \
-            --arch "$ARCH" \
-            --sign-key "$PRIVKEY" \
-            -o APKINDEX.tar.gz \
-            *.apk)
+        apk sign --sign-key "$PRIVKEY" --output "${DIR}/APKINDEX.tar.gz" "$TEMP_INDEX"
+        rm -f "$TEMP_INDEX"
         printf 'index: signed %s/APKINDEX.tar.gz\n' "$DIR"
     else
-        (cd "$DIR" && apk mkndx \
-            --allow-untrusted \
-            --arch "$ARCH" \
-            -o APKINDEX.tar.gz \
-            *.apk)
-        printf 'index: WARNING: no signing key, index is unsigned\n'
+        mv "$TEMP_INDEX" "${DIR}/APKINDEX.tar.gz"
+        printf 'index: unsigned %s/APKINDEX.tar.gz\n' "$DIR"
     fi
 }
 
