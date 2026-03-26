@@ -23,8 +23,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: x86_64/
-          key: packages-x86_64-${{ hashFiles('config/seeds.list', 'scripts/**') }}
-          restore-keys: packages-x86_64-
+          key: packages-v2-x86_64-${{ hashFiles('config/seeds.list', 'scripts/**') }}
+          restore-keys: packages-v2-x86_64-
           save-always: true
 
       - name: Install build dependencies
@@ -101,7 +101,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: packages-x86_64
+          name: packages-v2-x86_64
           path: x86_64/
 
   build-aarch64:
@@ -116,8 +116,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: aarch64/
-          key: packages-aarch64-${{ hashFiles('config/seeds.list', 'scripts/**') }}
-          restore-keys: packages-aarch64-
+          key: packages-v2-aarch64-${{ hashFiles('config/seeds.list', 'scripts/**') }}
+          restore-keys: packages-v2-aarch64-
           save-always: true
 
       - name: Install build dependencies
@@ -191,7 +191,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: packages-aarch64
+          name: packages-v2-aarch64
           path: aarch64/
 
   test:
@@ -203,7 +203,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: packages-x86_64
+          name: packages-v2-x86_64
           path: x86_64/
 
       - name: Download apk binary
@@ -259,13 +259,13 @@ jobs:
       - name: Download x86_64 packages
         uses: actions/download-artifact@v4
         with:
-          name: packages-x86_64
+          name: packages-v2-x86_64
           path: x86_64/
 
       - name: Download aarch64 packages
         uses: actions/download-artifact@v4
         with:
-          name: packages-aarch64
+          name: packages-v2-aarch64
           path: aarch64/
 
       - name: Build Jekyll site
