@@ -33,7 +33,7 @@ jobs:
               clang mold ninja-build cmake meson autoconf automake \
               dpkg-dev devscripts fakeroot build-essential \
               curl ca-certificates git file openssl \
-              libzstd-dev libssl-dev zlib1g-dev
+              libzstd-dev libssl-dev zlib1g-dev pkg-config
 
       - name: Build apk-tools from source (static, +zstd)
         run: |
@@ -127,7 +127,7 @@ jobs:
               clang mold ninja-build cmake meson autoconf automake \
               dpkg-dev devscripts fakeroot build-essential \
               curl ca-certificates git file openssl \
-              libzstd-dev libssl-dev zlib1g-dev
+              libzstd-dev libssl-dev zlib1g-dev pkg-config
 
       - name: Build apk-tools from source (static, +zstd)
         run: |
