@@ -200,8 +200,10 @@ jobs:
 
           /usr/local/bin/apk --root "$R" --allow-untrusted update
 
-          count=$(tar -xOf x86_64/APKINDEX.tar.gz APKINDEX 2>/dev/null \
-                      | grep -c '^P:' || true)
+          # apk mkndx (v3 format) produces a binary ADB file, not a plain tar;
+          # count available packages via apk list after the update.
+          count=$(/usr/local/bin/apk --root "$R" --allow-untrusted list --available \
+                      2>/dev/null | wc -l || echo 0)
           printf 'index: %d packages\n' "$count"
           [ "$count" -gt 50 ] || { printf 'FAIL: expected >50 packages in index\n'; exit 1; }
 
