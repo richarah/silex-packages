@@ -190,17 +190,21 @@ jobs:
           mkdir -p "$R/etc/apk/keys" "$R/var/cache/apk" \
                    "$R/var/lib/apk" "$R/lib/apk/db"
           cp keys/*.rsa.pub "$R/etc/apk/keys/"
-          printf 'file://%s/x86_64\n' "$GITHUB_WORKSPACE" > "$R/etc/apk/repositories"
+          # Repository base URL without arch; apk v3 appends /$arch automatically.
+          printf 'file://%s\n' "$GITHUB_WORKSPACE" > "$R/etc/apk/repositories"
           printf 'x86_64\n' > "$R/etc/apk/arch"
 
-          /usr/local/bin/apk --root "$R" update
+          # apk v3 requires explicit database initialization before first use.
+          /usr/local/bin/apk --root "$R" add --initdb
+
+          /usr/local/bin/apk --root "$R" --allow-untrusted update
 
           count=$(tar -xOf x86_64/APKINDEX.tar.gz APKINDEX 2>/dev/null \
                       | grep -c '^P:' || true)
           printf 'index: %d packages\n' "$count"
           [ "$count" -gt 50 ] || { printf 'FAIL: expected >50 packages in index\n'; exit 1; }
 
-          /usr/local/bin/apk --root "$R" --force-depends add \
+          /usr/local/bin/apk --root "$R" --allow-untrusted --force-depends add \
               libssl-dev zlib1g-dev libcurl4-openssl-dev
 
           test -f "$R/usr/include/openssl/ssl.h" || { printf 'FAIL: ssl.h missing\n';  exit 1; }
