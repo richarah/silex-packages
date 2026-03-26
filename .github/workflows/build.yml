@@ -67,8 +67,8 @@ jobs:
       - name: Setup signing keys
         run: |
           mkdir -p keys /tmp/silex-keys
-          printf '%s' "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
-          printf '%s' "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
+          echo '%s' "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
+          echo '%s' "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
           chmod 600 /tmp/silex-keys/silex-packages.rsa
           cp /tmp/silex-keys/silex-packages.rsa.pub keys/
         env:
@@ -152,8 +152,8 @@ jobs:
       - name: Setup signing keys
         run: |
           mkdir -p keys /tmp/silex-keys
-          printf '%s' "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
-          printf '%s' "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
+          echo '%s' "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
+          echo '%s' "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
           chmod 600 /tmp/silex-keys/silex-packages.rsa
           cp /tmp/silex-keys/silex-packages.rsa.pub keys/
         env:
