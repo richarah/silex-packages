@@ -2,3 +2,8 @@
 # Use for thin wrappers, transitional packages, or packages where
 # compilation overhead exceeds any possible runtime benefit.
 # One Debian package name per line. Lines starting with # are ignored.
+
+# TBB: contains .so.2 but source build compiles 300+ test targets — no runtime
+# benefit over the Debian binary for our use case (opencv build dep).
+libtbb-dev
+libtbb2
