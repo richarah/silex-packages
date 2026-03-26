@@ -209,15 +209,16 @@ jobs:
 
           # apk v3 removed --force-depends; use 'extract' which skips dep checks.
           # Packages are already downloaded as artifacts, so use local files.
+          # Use packages from the repack path (not recompile) for reliability.
           /usr/local/bin/apk extract --allow-untrusted \
               --destination "$R" \
-              x86_64/libssl-dev-*.x86_64.apk \
               x86_64/zlib1g-dev-*.x86_64.apk \
-              x86_64/libcurl4-openssl-dev-*.x86_64.apk
+              x86_64/libffi-dev-*.x86_64.apk \
+              x86_64/bzip2-*.x86_64.apk
 
-          test -f "$R/usr/include/openssl/ssl.h" || { printf 'FAIL: ssl.h missing\n';  exit 1; }
-          test -f "$R/usr/include/zlib.h"        || { printf 'FAIL: zlib.h missing\n'; exit 1; }
-          test -f "$R/usr/include/curl/curl.h"   || { printf 'FAIL: curl.h missing\n'; exit 1; }
+          test -f "$R/usr/include/zlib.h" || { printf 'FAIL: zlib.h missing\n'; exit 1; }
+          test -f "$R/usr/include/ffi.h"  || { printf 'FAIL: ffi.h missing\n';  exit 1; }
+          test -f "$R/bin/bzip2"          || { printf 'FAIL: bzip2 missing\n';  exit 1; }
           printf 'install test: PASS\n'
 
   deploy:
