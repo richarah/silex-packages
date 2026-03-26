@@ -45,9 +45,11 @@ jobs:
           cd /tmp/apk-tools-v3.0.5
           printf '#pragma once\n#include <string.h>\n#ifndef strlcpy\nstatic inline size_t strlcpy(char*d,const char*s,size_t n){size_t l=strlen(s);if(n){size_t c=l<n-1?l:n-1;__builtin_memcpy(d,s,c);d[c]=0;}return l;}\n#endif\n' \
               > /tmp/strlcpy_compat.h
-          # Debug: Check if libfetch.a exists and contains symbols
+          # Build libfetch first
+          make -C libfetch -j$(nproc) CC=clang CFLAGS="-O2 -include /tmp/strlcpy_compat.h" STATIC=y
           ls -la libfetch/libfetch.a
           nm libfetch/libfetch.a 2>/dev/null | grep -q fetchParseURL && echo "fetchParseURL found" || echo "fetchParseURL not found in libfetch.a"
+          # Build the rest
           make -j$(nproc) \
               CC=clang \
               CFLAGS="-O2 -include /tmp/strlcpy_compat.h" \
@@ -141,8 +143,11 @@ jobs:
           cd /tmp/apk-tools-v3.0.5
           printf '#pragma once\n#include <string.h>\n#ifndef strlcpy\nstatic inline size_t strlcpy(char*d,const char*s,size_t n){size_t l=strlen(s);if(n){size_t c=l<n-1?l:n-1;__builtin_memcpy(d,s,c);d[c]=0;}return l;}\n#endif\n' \
               > /tmp/strlcpy_compat.h
+          # Build libfetch first
+          make -C libfetch -j$(nproc) CC=clang CFLAGS="-O2 -include /tmp/strlcpy_compat.h" STATIC=y
           ls -la libfetch/libfetch.a
           nm libfetch/libfetch.a 2>/dev/null | grep -q fetchParseURL && echo "fetchParseURL found" || echo "fetchParseURL not found in libfetch.a"
+          # Build the rest
           make -j$(nproc) \
               CC=clang \
               CFLAGS="-O2 -include /tmp/strlcpy_compat.h" \
