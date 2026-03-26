@@ -35,45 +35,13 @@ jobs:
               curl ca-certificates git file openssl \
               libzstd-dev libssl-dev zlib1g-dev pkg-config
 
-      - name: Build apk-tools from source (static, +zstd)
+      - name: Download apk-tools static binary
         run: |
           curl -fsSL --retry 5 --retry-delay 5 \
-              "https://gitlab.alpinelinux.org/alpine/apk-tools/-/archive/v3.0.5/apk-tools-v3.0.5.tar.gz" \
-              -o /tmp/apk-tools.tar.gz
-          echo "e9d7398d5f70badea596903599bfa1e05b64d67d13c929da9f0eee85828260c6  /tmp/apk-tools.tar.gz" | sha256sum -c -
-          tar xf /tmp/apk-tools.tar.gz -C /tmp
-          cd /tmp/apk-tools-v3.0.5
-          printf '#pragma once\n#include <string.h>\n#ifndef strlcpy\nstatic inline size_t strlcpy(char*d,const char*s,size_t n){size_t l=strlen(s);if(n){size_t c=l<n-1?l:n-1;__builtin_memcpy(d,s,c);d[c]=0;}return l;}\n#endif\n' \
-              > /tmp/strlcpy_compat.h
-          
-          echo "=== Building libfetch ==="
-          make -C libfetch -j$(nproc) CC=clang CFLAGS="-O2 -include /tmp/strlcpy_compat.h" STATIC=y
-          echo "=== libfetch build complete ==="
-          
-          echo "=== Checking libfetch.a ==="
-          ls -la libfetch/
-          ls -la libfetch/libfetch.a || echo "libfetch.a not found!"
-          
-          echo "=== Building main apk-tools ==="
-          make -j$(nproc) \
-              CC=clang \
-              CFLAGS="-O2 -include /tmp/strlcpy_compat.h" \
-              LDFLAGS="-L./libfetch" \
-              LIBS="-lfetch -lssl -lcrypto" \
-              STATIC=y \
-              LUA=no
-          
-          echo "=== Installing ==="
-          install -m755 src/apk.static /usr/local/bin/apk
-          nm src/apk.static 2>/dev/null | grep -q 'ZSTD_compress' \
-              && echo 'apk: zstd support: yes' \
-              || echo 'apk: zstd support: no (ZSTD_compress not found)'
-
-      - name: Upload apk binary (for test job)
-        uses: actions/upload-artifact@v4
-        with:
-          name: apk-static-x86_64
-          path: /usr/local/bin/apk
+              "https://gitlab.alpinelinux.org/alpine/apk-tools/-/releases/v3.0.5/downloads/apk-tools-3.0.5-x86_64-linux-static" \
+              -o /usr/local/bin/apk
+          chmod +x /usr/local/bin/apk
+          /usr/local/bin/apk --version
 
       - name: Setup signing keys
         run: |
@@ -140,39 +108,13 @@ jobs:
               curl ca-certificates git file openssl \
               libzstd-dev libssl-dev zlib1g-dev pkg-config
 
-      - name: Build apk-tools from source (static, +zstd)
+      - name: Download apk-tools static binary
         run: |
           curl -fsSL --retry 5 --retry-delay 5 \
-              "https://gitlab.alpinelinux.org/alpine/apk-tools/-/archive/v3.0.5/apk-tools-v3.0.5.tar.gz" \
-              -o /tmp/apk-tools.tar.gz
-          echo "e9d7398d5f70badea596903599bfa1e05b64d67d13c929da9f0eee85828260c6  /tmp/apk-tools.tar.gz" | sha256sum -c -
-          tar xf /tmp/apk-tools.tar.gz -C /tmp
-          cd /tmp/apk-tools-v3.0.5
-          printf '#pragma once\n#include <string.h>\n#ifndef strlcpy\nstatic inline size_t strlcpy(char*d,const char*s,size_t n){size_t l=strlen(s);if(n){size_t c=l<n-1?l:n-1;__builtin_memcpy(d,s,c);d[c]=0;}return l;}\n#endif\n' \
-              > /tmp/strlcpy_compat.h
-          
-          echo "=== Building libfetch ==="
-          make -C libfetch -j$(nproc) CC=clang CFLAGS="-O2 -include /tmp/strlcpy_compat.h" STATIC=y
-          echo "=== libfetch build complete ==="
-          
-          echo "=== Checking libfetch.a ==="
-          ls -la libfetch/
-          ls -la libfetch/libfetch.a || echo "libfetch.a not found!"
-          
-          echo "=== Building main apk-tools ==="
-          make -j$(nproc) \
-              CC=clang \
-              CFLAGS="-O2 -include /tmp/strlcpy_compat.h" \
-              LDFLAGS="-L./libfetch" \
-              LIBS="-lfetch -lssl -lcrypto" \
-              STATIC=y \
-              LUA=no
-          
-          echo "=== Installing ==="
-          install -m755 src/apk.static /usr/local/bin/apk
-          nm src/apk.static 2>/dev/null | grep -q 'ZSTD_compress' \
-              && echo 'apk: zstd support: yes' \
-              || echo 'apk: zstd support: no (ZSTD_compress not found)'
+              "https://gitlab.alpinelinux.org/alpine/apk-tools/-/releases/v3.0.5/downloads/apk-tools-3.0.5-aarch64-linux-static" \
+              -o /usr/local/bin/apk
+          chmod +x /usr/local/bin/apk
+          /usr/local/bin/apk --version
 
       - name: Setup signing keys
         run: |
@@ -231,7 +173,7 @@ jobs:
           name: packages-x86_64
           path: x86_64/
 
-      - name: Download apk binary (built with zstd)
+      - name: Download apk binary
         uses: actions/download-artifact@v4
         with:
           name: apk-static-x86_64
