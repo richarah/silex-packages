@@ -24,13 +24,14 @@ jobs:
           apt-get install -y --no-install-recommends \
               clang mold ninja-build cmake meson autoconf automake \
               dpkg-dev devscripts fakeroot build-essential \
-              curl ca-certificates git file openssl
+              curl ca-certificates git file openssl zstd
 
       - name: Install apk-tools (static binary)
         run: |
           curl -fsSL --retry 5 --retry-delay 10 \
-              "https://gitlab.alpinelinux.org/api/v4/projects/5/packages/generic//v2.14.4/x86_64/apk.static" \
+              "https://gitlab.alpinelinux.org/api/v4/projects/5/packages/generic/v3.0.5/x86_64/apk.static" \
               -o /usr/local/bin/apk
+          echo "e13142629d2e7ee9d20a24d147c09eaa343767677471ef39a0d0d53dcacacac2  /usr/local/bin/apk" | sha256sum -c -
           chmod +x /usr/local/bin/apk
 
       - name: Setup signing keys
@@ -88,13 +89,14 @@ jobs:
           apt-get install -y --no-install-recommends \
               clang mold ninja-build cmake meson autoconf automake \
               dpkg-dev devscripts fakeroot build-essential \
-              curl ca-certificates git file openssl
+              curl ca-certificates git file openssl zstd
 
       - name: Install apk-tools (static binary)
         run: |
           curl -fsSL --retry 5 --retry-delay 10 \
-              "https://gitlab.alpinelinux.org/api/v4/projects/5/packages/generic//v2.14.4/aarch64/apk.static" \
+              "https://gitlab.alpinelinux.org/api/v4/projects/5/packages/generic/v3.0.5/aarch64/apk.static" \
               -o /usr/local/bin/apk
+          echo "1d0d0e15e6b7bfa537ea3903eead189b5bdfd854729ebdd505567e9f61d4e701  /usr/local/bin/apk" | sha256sum -c -
           chmod +x /usr/local/bin/apk
 
       - name: Setup signing keys
@@ -157,37 +159,38 @@ jobs:
           name: packages-x86_64
           path: x86_64/
 
+      - name: Install apk v3 (static binary)
+        run: |
+          curl -fsSL --retry 5 --retry-delay 10 \
+              "https://gitlab.alpinelinux.org/api/v4/projects/5/packages/generic/v3.0.5/x86_64/apk.static" \
+              -o /usr/local/bin/apk
+          echo "e13142629d2e7ee9d20a24d147c09eaa343767677471ef39a0d0d53dcacacac2  /usr/local/bin/apk" | sha256sum -c -
+          chmod +x /usr/local/bin/apk
+
       - name: Test package install
         run: |
-          docker run --rm \
-            --volume "$GITHUB_WORKSPACE/x86_64:/repo" \
-            --volume "$GITHUB_WORKSPACE/keys:/keys:ro" \
-            alpine:3.21 sh -c '
-              set -e
+          set -e
+          R=/tmp/pkgroot
+          mkdir -p "$R/etc/apk/keys" "$R/var/cache/apk" \
+                   "$R/var/lib/apk" "$R/lib/apk/db"
+          cp keys/*.rsa.pub "$R/etc/apk/keys/"
+          printf 'file://%s/x86_64\n' "$GITHUB_WORKSPACE" > "$R/etc/apk/repositories"
+          printf 'x86_64\n' > "$R/etc/apk/arch"
 
-              cp /keys/*.rsa.pub /etc/apk/keys/
-              printf "file:///repo\n" > /etc/apk/repositories
-              apk update
+          /usr/local/bin/apk --root "$R" update
 
-              # Count packages in index
-              count=$(tar -xOf /repo/APKINDEX.tar.gz APKINDEX 2>/dev/null \
-                          | grep -c "^P:" || true)
-              printf "index: %d packages\n" "$count"
-              [ "$count" -gt 50 ] || { printf "FAIL: expected >50 packages in index\n"; exit 1; }
+          count=$(tar -xOf x86_64/APKINDEX.tar.gz APKINDEX 2>/dev/null \
+                      | grep -c '^P:' || true)
+          printf 'index: %d packages\n' "$count"
+          [ "$count" -gt 50 ] || { printf 'FAIL: expected >50 packages in index\n'; exit 1; }
 
-              # Install representative packages.
-              # --force-depends: skip libc6 etc. from skip.list that are absent
-              #   from this isolated file:// repo but present in any real base image.
-              apk add --force-depends \
-                  libssl-dev zlib1g-dev libcurl4-openssl-dev
+          /usr/local/bin/apk --root "$R" --force-depends add \
+              libssl-dev zlib1g-dev libcurl4-openssl-dev
 
-              # Verify expected headers were extracted
-              test -f /usr/include/openssl/ssl.h || { printf "FAIL: ssl.h missing\n";  exit 1; }
-              test -f /usr/include/zlib.h        || { printf "FAIL: zlib.h missing\n"; exit 1; }
-              test -f /usr/include/curl/curl.h   || { printf "FAIL: curl.h missing\n"; exit 1; }
-
-              printf "install test: PASS\n"
-            '
+          test -f "$R/usr/include/openssl/ssl.h" || { printf 'FAIL: ssl.h missing\n';  exit 1; }
+          test -f "$R/usr/include/zlib.h"        || { printf 'FAIL: zlib.h missing\n'; exit 1; }
+          test -f "$R/usr/include/curl/curl.h"   || { printf 'FAIL: curl.h missing\n'; exit 1; }
+          printf 'install test: PASS\n'
 
   deploy:
     name: Deploy to Pages

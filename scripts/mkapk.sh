@@ -6,7 +6,8 @@
 #   .PKGINFO       — package metadata (MUST be first in archive)
 #   usr/, lib/, etc.   — file tree
 #
-# An APK is a gzip'd tar archive with .PKGINFO as the first member.
+# An APK is a zstd-compressed tar archive with .PKGINFO as the first member.
+# Requires apk-tools v3 to install (apk v2 only reads gzip).
 # Optional pre/post install scripts (.pre-install, .post-install, etc.)
 # must also precede the file tree; they are included before the tree
 # if present in the staging dir.
@@ -40,4 +41,6 @@ done
     | sort) >> "$FILELIST"
 
 # Build the archive. --no-recursion: file list already includes all paths.
-(cd "$STAGING" && tar -czf "$OUTPUT" --no-recursion -T "$FILELIST")
+# zstd --ultra -22: maximum compression; -T0 uses all available CPUs.
+(cd "$STAGING" && tar -cf - --no-recursion -T "$FILELIST" \
+    | zstd --ultra -22 -T0 > "$OUTPUT")

@@ -40,24 +40,20 @@ printf '%d packages in closure\n' "$(wc -l < "$CLOSURE")"
 printf '=== classifying packages ===\n'
 "$SCRIPT_DIR/classify.sh" "$RECOMPILE_LIST" "$REPACK_LIST" < "$CLOSURE"
 
-# Repack first (fast, no compilation)
+# Repack first (fast, no compilation); run in parallel
 printf '=== repacking %d packages ===\n' "$(wc -l < "$REPACK_LIST")"
-while IFS= read -r pkg; do
-    case "$pkg" in ''|'#'*) continue ;; esac
-    "$SCRIPT_DIR/repack.sh" "$pkg" || \
-        printf 'WARNING: repack failed for %s\n' "$pkg" >&2
-done < "$REPACK_LIST"
+grep -v '^[[:space:]]*$' "$REPACK_LIST" | grep -v '^[[:space:]]*#' | \
+    xargs -P "$(nproc)" -n 1 sh -c \
+        '"$SCRIPTS_DIR/repack.sh" "$1" ||
+         printf "WARNING: repack failed for %s\n" "$1" >&2' sh
 
-# Recompile (slow, in dependency order)
-# Since Debian's dependency resolver guarantees a valid install order, building
-# packages serially in the closure order is safe. For packages that need build
-# deps from our own repo, those deps were repacked first and are available.
+# Recompile (slow). Build deps come from system apt, not our repo, so
+# packages can be built in parallel.
 printf '=== recompiling %d packages ===\n' "$(wc -l < "$RECOMPILE_LIST")"
-while IFS= read -r pkg; do
-    case "$pkg" in ''|'#'*) continue ;; esac
-    "$SCRIPT_DIR/recompile.sh" "$pkg" || \
-        printf 'WARNING: recompile failed for %s\n' "$pkg" >&2
-done < "$RECOMPILE_LIST"
+grep -v '^[[:space:]]*$' "$RECOMPILE_LIST" | grep -v '^[[:space:]]*#' | \
+    xargs -P "$(nproc)" -n 1 sh -c \
+        '"$SCRIPTS_DIR/recompile.sh" "$1" ||
+         printf "WARNING: recompile failed for %s\n" "$1" >&2' sh
 
 printf '=== generating index ===\n'
 "$SCRIPT_DIR/index.sh"
