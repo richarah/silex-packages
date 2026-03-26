@@ -265,15 +265,6 @@ jobs:
           name: packages-aarch64
           path: aarch64/
 
-      - name: Debug - check downloaded packages
-        run: |
-          echo "=== x86_64 packages ==="
-          ls -la x86_64/ | head -10
-          echo "=== aarch64 packages ==="
-          ls -la aarch64/ | head -10
-          echo "=== Total size ==="
-          du -sh x86_64/ aarch64/
-
       - name: Build Jekyll site
         uses: actions/jekyll-build-pages@v1
         with:
@@ -282,16 +273,10 @@ jobs:
 
       - name: Copy packages into _site
         run: |
-          cp -r x86_64 aarch64 keys ./_site/
-
-      - name: Debug - show contents after copy
-        run: |
-          echo "=== x86_64 directory ==="
-          ls -la x86_64/ | head -20
-          echo "=== _site/x86_64 directory ==="
-          ls -la _site/x86_64/ | head -20
-          echo "=== Total size of _site ==="
-          du -sh _site/
+          mkdir -p ./_site/x86_64 ./_site/aarch64 ./_site/keys
+          cp -r x86_64/* ./_site/x86_64/
+          cp -r aarch64/* ./_site/aarch64/
+          cp -r keys/* ./_site/keys/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
