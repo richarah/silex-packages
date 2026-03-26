@@ -10,9 +10,7 @@
 #      (these are actual shared libraries that benefit from -O3/-flto)
 #   4. Otherwise                                     -> repack
 #
-# "Versioned .so" means files matching *.so.[0-9]* in the package
-# content listing. Unversioned .so symlinks (as found in -dev packages)
-# do NOT trigger recompile.
+# Caches results to .classify-cache to avoid recomputing every run.
 #
 # Requires: apt-get, dpkg-deb
 # Must run inside a Debian bookworm container (apt sources configured).
@@ -30,16 +28,31 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 RECOMPILE_OVERRIDE="$REPO_ROOT/config/recompile-override.list"
 REPACK_OVERRIDE="$REPO_ROOT/config/repack-override.list"
+CACHE="$REPO_ROOT/.classify-cache"
+SEEDS="$REPO_ROOT/config/seeds.list"
 
 : > "$RECOMPILE_OUT"
 : > "$REPACK_OUT"
 
+# Use cache if it exists and is newer than seeds.list
+if [ -f "$CACHE" ] && [ "$CACHE" -nt "$SEEDS" ]; then
+    printf 'classify: using cached classification\n' >&2
+    awk -v recompile="$RECOMPILE_OUT" -v repack="$REPACK_OUT" '
+        /^recompile/ {print $2 > recompile}
+        /^repack/ {print $2 > repack}
+    ' "$CACHE"
+    _rc=$(grep -c . "$RECOMPILE_OUT" 2>/dev/null || echo 0)
+    _rp=$(grep -c . "$REPACK_OUT" 2>/dev/null || echo 0)
+    printf 'classify: done (cached). recompile=%s repack=%s\n' "$_rc" "$_rp"
+    exit 0
+fi
+
 # Temp dir: one file per package containing "recompile" or "repack"
 WORK_DIR=$(mktemp -d)
 AUTO_LIST=$(mktemp)
-# Helper script avoids quoting hell inside xargs sh -c
 HELPER=$(mktemp)
-trap 'rm -rf "$WORK_DIR" "$AUTO_LIST" "$HELPER"' EXIT INT TERM
+CACHE_TMP=$(mktemp)
+trap 'rm -rf "$WORK_DIR" "$AUTO_LIST" "$HELPER" "$CACHE_TMP"' EXIT INT TERM
 
 # Phase 1: process overrides (sequential — fast grep checks only);
 #          queue remaining packages for parallel inspection.
@@ -47,9 +60,11 @@ while IFS= read -r pkg; do
     case "$pkg" in ''|'#'*) continue ;; esac
     if [ -f "$RECOMPILE_OVERRIDE" ] && grep -qx "$pkg" "$RECOMPILE_OVERRIDE" 2>/dev/null; then
         printf '%s\n' "$pkg" >> "$RECOMPILE_OUT"
+        printf "recompile %s\n" "$pkg" >> "$CACHE_TMP"
         printf 'classify: %s -> recompile (override)\n' "$pkg"
     elif [ -f "$REPACK_OVERRIDE" ] && grep -qx "$pkg" "$REPACK_OVERRIDE" 2>/dev/null; then
         printf '%s\n' "$pkg" >> "$REPACK_OUT"
+        printf "repack %s\n" "$pkg" >> "$CACHE_TMP"
         printf 'classify: %s -> repack (override)\n' "$pkg"
     else
         printf '%s\n' "$pkg" >> "$AUTO_LIST"
@@ -90,18 +105,25 @@ export WORK_DIR
 < "$AUTO_LIST" xargs -P "$(nproc)" -n 1 "$HELPER"
 
 # Phase 3: collect results from WORK_DIR, append to output files in input order.
-n_recompile=0
-n_repack=0
 while IFS= read -r pkg; do
     case "$pkg" in ''|'#'*) continue ;; esac
     f="$WORK_DIR/$pkg"
     [ -f "$f" ] || continue
     result=$(cat "$f")
     case "$result" in
-        recompile) printf '%s\n' "$pkg" >> "$RECOMPILE_OUT"; n_recompile=$((n_recompile + 1)) ;;
-        *)         printf '%s\n' "$pkg" >> "$REPACK_OUT";    n_repack=$((n_repack + 1)) ;;
+        recompile) 
+            printf '%s\n' "$pkg" >> "$RECOMPILE_OUT"
+            printf "recompile %s\n" "$pkg" >> "$CACHE_TMP"
+            ;;
+        *)         
+            printf '%s\n' "$pkg" >> "$REPACK_OUT"
+            printf "repack %s\n" "$pkg" >> "$CACHE_TMP"
+            ;;
     esac
 done < "$AUTO_LIST"
+
+# Save cache
+sort -u "$CACHE_TMP" > "$CACHE"
 
 # Include overrides in final count
 _rc=$(grep -c . "$RECOMPILE_OUT" 2>/dev/null || printf '0')
