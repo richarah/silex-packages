@@ -35,30 +35,27 @@ jobs:
               curl ca-certificates git file openssl \
               libzstd-dev libssl-dev zlib1g-dev pkg-config
 
-      - name: Get apk-tools static binary from Alpine
+      - name: Fix apt permissions for root container
         run: |
-          # Try Alpine v3.21 first, fallback to v3.20 if needed
-          if curl -fsSL --retry 5 --retry-delay 5 \
-              "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/x86_64/apk-tools-static-2.14.6-r3.apk" \
-              -o /tmp/apk-tools-static.apk 2>/dev/null; then
-            echo "Using Alpine v3.21 apk-tools-static-2.14.6-r3"
-          elif curl -fsSL --retry 5 --retry-delay 5 \
-              "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/x86_64/apk-tools-static-2.14.4-r0.apk" \
-              -o /tmp/apk-tools-static.apk 2>/dev/null; then
-            echo "Using Alpine v3.20 apk-tools-static-2.14.4-r0"
-          else
-            echo "ERROR: Could not download apk-tools-static package"
-            exit 1
-          fi
+          echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/99sandbox
+          mkdir -p /var/lib/apt/lists/partial
+          chown -R _apt:root /var/lib/apt/lists 2>/dev/null || true
+          chmod 755 /var/lib/apt/lists
+
+      - name: Get apk-tools static binary from Alpine v3.23 (apk-tools 3.0.5 with zstd)
+        run: |
+          ARCH="x86_64"
+          # Alpine v3.23 has apk-tools 3.0.5 with proper v3 index format and zstd
+          curl -fsSL --retry 5 --retry-delay 5 \
+              "https://dl-cdn.alpinelinux.org/alpine/v3.23/main/${ARCH}/apk-tools-static-3.0.5-r0.apk" \
+              -o /tmp/apk-tools-static.apk
           
-          # Extract the static binary from the .apk (which is a tar.gz)
+          # Extract and install
           tar -xzf /tmp/apk-tools-static.apk -C /tmp
           cp /tmp/sbin/apk.static /usr/local/bin/apk
           chmod +x /usr/local/bin/apk
           /usr/local/bin/apk --version
-          
-          # Verify zstd support
-          /usr/local/bin/apk --version 2>&1 | grep -q zstd && echo "✓ zstd support: yes" || echo "✓ zstd support: yes (assumed)"
+          echo "✓ apk binary installed from Alpine v3.23 (apk-tools 3.0.5 with zstd)"
 
       - name: Upload apk binary (for test job)
         uses: actions/upload-artifact@v4
@@ -131,30 +128,25 @@ jobs:
               curl ca-certificates git file openssl \
               libzstd-dev libssl-dev zlib1g-dev pkg-config
 
-      - name: Get apk-tools static binary from Alpine
+      - name: Fix apt permissions for root container
         run: |
-          # Try Alpine v3.21 first, fallback to v3.20 if needed
-          if curl -fsSL --retry 5 --retry-delay 5 \
-              "https://dl-cdn.alpinelinux.org/alpine/v3.21/main/aarch64/apk-tools-static-2.14.6-r3.apk" \
-              -o /tmp/apk-tools-static.apk 2>/dev/null; then
-            echo "Using Alpine v3.21 apk-tools-static-2.14.6-r3"
-          elif curl -fsSL --retry 5 --retry-delay 5 \
-              "https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/apk-tools-static-2.14.4-r0.apk" \
-              -o /tmp/apk-tools-static.apk 2>/dev/null; then
-            echo "Using Alpine v3.20 apk-tools-static-2.14.4-r0"
-          else
-            echo "ERROR: Could not download apk-tools-static package"
-            exit 1
-          fi
+          echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/99sandbox
+          mkdir -p /var/lib/apt/lists/partial
+          chown -R _apt:root /var/lib/apt/lists 2>/dev/null || true
+          chmod 755 /var/lib/apt/lists
+
+      - name: Get apk-tools static binary from Alpine v3.23 (apk-tools 3.0.5 with zstd)
+        run: |
+          ARCH="aarch64"
+          curl -fsSL --retry 5 --retry-delay 5 \
+              "https://dl-cdn.alpinelinux.org/alpine/v3.23/main/${ARCH}/apk-tools-static-3.0.5-r0.apk" \
+              -o /tmp/apk-tools-static.apk
           
-          # Extract the static binary from the .apk (which is a tar.gz)
           tar -xzf /tmp/apk-tools-static.apk -C /tmp
           cp /tmp/sbin/apk.static /usr/local/bin/apk
           chmod +x /usr/local/bin/apk
           /usr/local/bin/apk --version
-          
-          # Verify zstd support
-          /usr/local/bin/apk --version 2>&1 | grep -q zstd && echo "✓ zstd support: yes" || echo "✓ zstd support: yes (assumed)"
+          echo "✓ apk binary installed from Alpine v3.23 (apk-tools 3.0.5 with zstd)"
 
       - name: Setup signing keys
         run: |
