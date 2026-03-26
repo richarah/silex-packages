@@ -195,7 +195,8 @@ jobs:
           printf 'x86_64\n' > "$R/etc/apk/arch"
 
           # apk v3 requires explicit database initialization before first use.
-          /usr/local/bin/apk --root "$R" add --initdb
+          # Test runner is non-root; --usermode allows initdb without root.
+          /usr/local/bin/apk --root "$R" add --initdb --usermode
 
           /usr/local/bin/apk --root "$R" --allow-untrusted update
 
