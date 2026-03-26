@@ -141,6 +141,7 @@ socat
 tree
 
 # Runtime — commonly installed in Dockerfiles
+bash
 ca-certificates
 openssl
 procps
