@@ -5,6 +5,7 @@ on:
     paths:
       - 'config/**'
       - 'scripts/**'
+      - '.github/workflows/**'
   schedule:
     - cron: '0 4 * * 1'
   workflow_dispatch:
