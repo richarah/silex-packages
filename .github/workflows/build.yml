@@ -18,6 +18,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Restore package cache
+        uses: actions/cache@v4
+        with:
+          path: x86_64/
+          key: packages-x86_64-${{ hashFiles('config/seeds.list', 'scripts/**') }}
+          restore-keys: packages-x86_64-
+          save-always: true
+
       - name: Install build dependencies
         run: |
           apt-get update -qq
@@ -82,6 +90,14 @@ jobs:
       image: debian:bookworm
     steps:
       - uses: actions/checkout@v4
+
+      - name: Restore package cache
+        uses: actions/cache@v4
+        with:
+          path: aarch64/
+          key: packages-aarch64-${{ hashFiles('config/seeds.list', 'scripts/**') }}
+          restore-keys: packages-aarch64-
+          save-always: true
 
       - name: Install build dependencies
         run: |

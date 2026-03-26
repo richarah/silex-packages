@@ -40,20 +40,30 @@ printf '%d packages in closure\n' "$(wc -l < "$CLOSURE")"
 printf '=== classifying packages ===\n'
 "$SCRIPT_DIR/classify.sh" "$RECOMPILE_LIST" "$REPACK_LIST" < "$CLOSURE"
 
-# Repack first (fast, no compilation); run in parallel
+# Repack first (fast, no compilation); run in parallel.
+# Skip packages whose .apk already exists in REPO_DIR (resume-safe).
 printf '=== repacking %d packages ===\n' "$(wc -l < "$REPACK_LIST")"
 grep -v '^[[:space:]]*$' "$REPACK_LIST" | grep -v '^[[:space:]]*#' | \
-    xargs -P "$(nproc)" -n 1 sh -c \
-        '"$SCRIPTS_DIR/repack.sh" "$1" ||
-         printf "WARNING: repack failed for %s\n" "$1" >&2' sh
+    xargs -P "$(nproc)" -n 1 sh -c '
+        if ls "$REPO_DIR/$1-"[0-9]*.apk >/dev/null 2>&1; then
+            printf "cached  %s\n" "$1"
+        else
+            "$SCRIPTS_DIR/repack.sh" "$1" ||
+            printf "WARNING: repack failed for %s\n" "$1" >&2
+        fi' sh
 
 # Recompile (slow). Build deps come from system apt, not our repo, so
 # packages can be built in parallel.
+# Skip packages whose .apk already exists in REPO_DIR (resume-safe).
 printf '=== recompiling %d packages ===\n' "$(wc -l < "$RECOMPILE_LIST")"
 grep -v '^[[:space:]]*$' "$RECOMPILE_LIST" | grep -v '^[[:space:]]*#' | \
-    xargs -P "$(nproc)" -n 1 sh -c \
-        '"$SCRIPTS_DIR/recompile.sh" "$1" ||
-         printf "WARNING: recompile failed for %s\n" "$1" >&2' sh
+    xargs -P "$(nproc)" -n 1 sh -c '
+        if ls "$REPO_DIR/$1-"[0-9]*.apk >/dev/null 2>&1; then
+            printf "cached  %s\n" "$1"
+        else
+            "$SCRIPTS_DIR/recompile.sh" "$1" ||
+            printf "WARNING: recompile failed for %s\n" "$1" >&2
+        fi' sh
 
 printf '=== generating index ===\n'
 "$SCRIPT_DIR/index.sh"
