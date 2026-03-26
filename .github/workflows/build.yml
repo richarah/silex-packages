@@ -205,8 +205,13 @@ jobs:
           printf 'index: %d packages\n' "$count"
           [ "$count" -gt 50 ] || { printf 'FAIL: expected >50 packages in index\n'; exit 1; }
 
-          /usr/local/bin/apk --root "$R" --allow-untrusted --force-depends add \
-              libssl-dev zlib1g-dev libcurl4-openssl-dev
+          # apk v3 removed --force-depends; use 'extract' which skips dep checks.
+          # Packages are already downloaded as artifacts, so use local files.
+          /usr/local/bin/apk extract --allow-untrusted \
+              --destination "$R" \
+              x86_64/libssl-dev-*.x86_64.apk \
+              x86_64/zlib1g-dev-*.x86_64.apk \
+              x86_64/libcurl4-openssl-dev-*.x86_64.apk
 
           test -f "$R/usr/include/openssl/ssl.h" || { printf 'FAIL: ssl.h missing\n';  exit 1; }
           test -f "$R/usr/include/zlib.h"        || { printf 'FAIL: zlib.h missing\n'; exit 1; }

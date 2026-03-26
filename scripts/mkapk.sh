@@ -15,6 +15,10 @@
 #   - No end-of-archive null blocks at the end of the stream
 #   - .PKGINFO must contain a 'datahash' field (SHA256 of the data stream)
 #
+# apk-tools v3 requirements for the data stream:
+#   - Each file entry must be preceded by a PAX extended header (type='x')
+#     containing APK-TOOLS.checksum.SHA1=<sha1hex> (produced by apk-tar.c)
+#
 # Optional pre/post install scripts (.pre-install, .post-install, etc.)
 # are included in the control stream if present in the staging dir.
 
@@ -26,6 +30,10 @@ OUTPUT="$2"
 [ -d "$STAGING" ]  || { printf 'mkapk: %s: not a directory\n' "$STAGING" >&2; exit 1; }
 [ -n "$OUTPUT" ]   || { printf 'mkapk: output path required\n' >&2; exit 1; }
 [ -f "$STAGING/.PKGINFO" ] || { printf 'mkapk: %s/.PKGINFO not found\n' "$STAGING" >&2; exit 1; }
+
+# apk-tar binary: compiled from apk-tar.c by build-all.sh before parallel builds.
+APK_TAR=/tmp/silex-apk-tar
+[ -x "$APK_TAR" ] || { printf 'mkapk: apk-tar not found at %s (compile apk-tar.c first)\n' "$APK_TAR" >&2; exit 1; }
 
 CTRL_LIST=$(mktemp)
 DATA_LIST=$(mktemp)
@@ -48,7 +56,8 @@ done
     | sort) >> "$DATA_LIST"
 
 # Stream 2: data section — build first so we can compute datahash for .PKGINFO
-(cd "$STAGING" && tar -czf - --no-recursion -T "$DATA_LIST") > "$DATA_STREAM"
+# apk-tar adds APK-TOOLS SHA1 PAX headers required by apk-tools v3 extract/add.
+(cd "$STAGING" && "$APK_TAR" < "$DATA_LIST" | gzip -9) > "$DATA_STREAM"
 
 # Append datahash to .PKGINFO (SHA256 of the compressed data stream)
 printf 'datahash = %s\n' "$(sha256sum "$DATA_STREAM" | awk '{print $1}')" \

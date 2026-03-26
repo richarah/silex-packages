@@ -44,6 +44,10 @@ RECOMPILE_LIST=$(mktemp)
 REPACK_LIST=$(mktemp)
 trap 'rm -f "$CLOSURE" "$RECOMPILE_LIST" "$REPACK_LIST"' EXIT INT TERM
 
+printf '=== compiling apk-tar helper ===\n'
+cc -O2 -o /tmp/silex-apk-tar "$SCRIPT_DIR/apk-tar.c" ||
+    { printf 'ERROR: failed to compile apk-tar.c\n' >&2; exit 1; }
+
 printf '=== resolving dependency closure ===\n'
 "$SCRIPT_DIR/resolve-deps.sh" > "$CLOSURE"
 printf '%d packages in closure\n' "$(wc -l < "$CLOSURE")"
