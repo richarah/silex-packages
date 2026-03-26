@@ -21,7 +21,6 @@ SKIP="$REPO_ROOT/config/skip.list"
 
 [ -f "$SEEDS" ] || { printf 'resolve-deps: %s not found\n' "$SEEDS" >&2; exit 1; }
 
-# Build a combined skip pattern (one name per line -> awk exact match)
 SKIP_TMP=$(mktemp)
 trap 'rm -f "$SKIP_TMP"' EXIT INT TERM
 
@@ -29,7 +28,8 @@ if [ -f "$SKIP" ]; then
     grep -v '^#' "$SKIP" | grep -v '^[[:space:]]*$' > "$SKIP_TMP"
 fi
 
-# Expand dependency closure for each seed package
+# Expand dependency closure for each seed, deduplicate, filter skip list,
+# then verify each package has a real binary in parallel (apt-cache show).
 grep -v '^#' "$SEEDS" | grep -v '^[[:space:]]*$' | while IFS= read -r pkg; do
     apt-cache depends \
         --recurse \
@@ -44,14 +44,7 @@ grep -v '^#' "$SEEDS" | grep -v '^[[:space:]]*$' | while IFS= read -r pkg; do
     | grep -v '^<'  # skip virtual package refs like <python3:any>
 done \
 | sort -u \
-| while IFS= read -r dep; do
-    # Skip packages from skip list
-    if grep -qx "$dep" "$SKIP_TMP" 2>/dev/null; then
-        continue
-    fi
-    # Skip if no binary package exists (virtual packages, arch:all meta, etc.)
-    if apt-cache show "$dep" >/dev/null 2>&1; then
-        printf '%s\n' "$dep"
-    fi
-done \
+| grep -vFxf "$SKIP_TMP" \
+| xargs -P "$(nproc)" -n 1 sh -c \
+    'apt-cache show "$1" >/dev/null 2>&1 && printf "%s\n" "$1"' sh \
 | sort -u

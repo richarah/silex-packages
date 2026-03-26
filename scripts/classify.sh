@@ -34,64 +34,76 @@ REPACK_OVERRIDE="$REPO_ROOT/config/repack-override.list"
 : > "$RECOMPILE_OUT"
 : > "$REPACK_OUT"
 
-n_recompile=0
-n_repack=0
+# Temp dir: one file per package containing "recompile" or "repack"
+WORK_DIR=$(mktemp -d)
+AUTO_LIST=$(mktemp)
+# Helper script avoids quoting hell inside xargs sh -c
+HELPER=$(mktemp)
+trap 'rm -rf "$WORK_DIR" "$AUTO_LIST" "$HELPER"' EXIT INT TERM
 
+# Phase 1: process overrides (sequential — fast grep checks only);
+#          queue remaining packages for parallel inspection.
 while IFS= read -r pkg; do
-    # Skip blank lines and comments
     case "$pkg" in ''|'#'*) continue ;; esac
-
-    # Override lists take priority
     if [ -f "$RECOMPILE_OVERRIDE" ] && grep -qx "$pkg" "$RECOMPILE_OVERRIDE" 2>/dev/null; then
         printf '%s\n' "$pkg" >> "$RECOMPILE_OUT"
-        n_recompile=$((n_recompile + 1))
         printf 'classify: %s -> recompile (override)\n' "$pkg"
-        continue
-    fi
-    if [ -f "$REPACK_OVERRIDE" ] && grep -qx "$pkg" "$REPACK_OVERRIDE" 2>/dev/null; then
+    elif [ -f "$REPACK_OVERRIDE" ] && grep -qx "$pkg" "$REPACK_OVERRIDE" 2>/dev/null; then
         printf '%s\n' "$pkg" >> "$REPACK_OUT"
-        n_repack=$((n_repack + 1))
         printf 'classify: %s -> repack (override)\n' "$pkg"
-        continue
-    fi
-
-    # Download .deb into temp dir and inspect content listing
-    WORK=$(mktemp -d)
-    CLASSIFIED=repack
-
-    if ( cd "$WORK" && apt-get download "$pkg" -q 2>/dev/null ); then
-        DEB=$(ls "$WORK"/*.deb 2>/dev/null | head -1)
-        if [ -f "$DEB" ]; then
-            # Versioned shared library: *.so.N (e.g. libssl.so.3, libz.so.1.2.11)
-            # Skip symlink lines (first char 'l') — their $NF is the symlink target
-            # e.g. "libssl.so -> libssl.so.3" would falsely match \.so\.[0-9] on
-            # the target.  Only actual versioned files (in runtime -lib packages)
-            # trigger recompile; -dev packages with unversioned .so symlinks repack.
-            if dpkg-deb -c "$DEB" 2>/dev/null \
-                    | awk '$1 !~ /^l/ {print $NF}' \
-                    | grep -qE '\.so\.[0-9]'; then
-                CLASSIFIED=recompile
-            fi
-        else
-            printf 'classify: %s: no .deb found after download, defaulting to repack\n' \
-                "$pkg" >&2
-        fi
     else
-        printf 'classify: %s: apt-get download failed, defaulting to repack\n' \
-            "$pkg" >&2
-    fi
-
-    rm -rf "$WORK"
-
-    if [ "$CLASSIFIED" = "recompile" ]; then
-        printf '%s\n' "$pkg" >> "$RECOMPILE_OUT"
-        n_recompile=$((n_recompile + 1))
-        printf 'classify: %s -> recompile\n' "$pkg"
-    else
-        printf '%s\n' "$pkg" >> "$REPACK_OUT"
-        n_repack=$((n_repack + 1))
-        printf 'classify: %s -> repack\n' "$pkg"
+        printf '%s\n' "$pkg" >> "$AUTO_LIST"
     fi
 done
 
-printf 'classify: done. recompile=%d repack=%d\n' "$n_recompile" "$n_repack"
+# Phase 2: parallel classification — download each .deb and inspect content.
+# Each worker writes its result ("recompile" or "repack") to $WORK_DIR/$pkg.
+# apt-get download is I/O-bound so nproc workers fill the pipe well.
+cat > "$HELPER" << 'HELPER_SCRIPT'
+#!/bin/sh
+pkg="$1"
+DL=$(mktemp -d)
+RESULT=repack
+if ( cd "$DL" && apt-get download "$pkg" -q 2>/dev/null ); then
+    DEB=$(ls "$DL"/*.deb 2>/dev/null | head -1)
+    if [ -f "$DEB" ]; then
+        # Skip symlink lines (first char 'l') — their $NF is the symlink target,
+        # which may falsely match \.so\.[0-9] (e.g. libssl.so -> libssl.so.3).
+        if dpkg-deb -c "$DEB" 2>/dev/null \
+                | awk '$1 !~ /^l/ {print $NF}' \
+                | grep -qE '\.so\.[0-9]'; then
+            RESULT=recompile
+        fi
+    else
+        printf 'classify: %s: no .deb found after download, defaulting to repack\n' "$pkg" >&2
+    fi
+else
+    printf 'classify: %s: apt-get download failed, defaulting to repack\n' "$pkg" >&2
+fi
+rm -rf "$DL"
+printf '%s\n' "$RESULT" > "${WORK_DIR}/${pkg}"
+printf 'classify: %s -> %s\n' "$pkg" "$RESULT"
+HELPER_SCRIPT
+chmod +x "$HELPER"
+
+export WORK_DIR
+< "$AUTO_LIST" xargs -P "$(nproc)" -n 1 "$HELPER"
+
+# Phase 3: collect results from WORK_DIR, append to output files in input order.
+n_recompile=0
+n_repack=0
+while IFS= read -r pkg; do
+    case "$pkg" in ''|'#'*) continue ;; esac
+    f="$WORK_DIR/$pkg"
+    [ -f "$f" ] || continue
+    result=$(cat "$f")
+    case "$result" in
+        recompile) printf '%s\n' "$pkg" >> "$RECOMPILE_OUT"; n_recompile=$((n_recompile + 1)) ;;
+        *)         printf '%s\n' "$pkg" >> "$REPACK_OUT";    n_repack=$((n_repack + 1)) ;;
+    esac
+done < "$AUTO_LIST"
+
+# Include overrides in final count
+_rc=$(grep -c . "$RECOMPILE_OUT" 2>/dev/null || printf '0')
+_rp=$(grep -c . "$REPACK_OUT"    2>/dev/null || printf '0')
+printf 'classify: done. recompile=%s repack=%s\n' "$_rc" "$_rp"
