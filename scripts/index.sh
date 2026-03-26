@@ -1,6 +1,6 @@
 #!/bin/sh
 # index.sh
-# Generate and sign APKINDEX.tar.gz using apk v3 syntax
+# Generate and sign APKINDEX.tar.gz for package directories.
 
 set -e
 
@@ -20,15 +20,18 @@ do_index() {
 
     TEMP_INDEX="${DIR}/APKINDEX.tmp"
     
+    # Generate unsigned index first
     apk index --arch "$ARCH" --output "$TEMP_INDEX" "$DIR"/*.apk
 
-    if [ -f "$PRIVKEY" ] && [ -s "$PRIVKEY" ]; then
+    # Sign the index if private key is available
+    if [ -n "$PRIVKEY" ] && [ -f "$PRIVKEY" ] && [ -s "$PRIVKEY" ]; then
         apk sign --sign-key "$PRIVKEY" --output "${DIR}/APKINDEX.tar.gz" "$TEMP_INDEX"
         rm -f "$TEMP_INDEX"
         printf 'index: signed %s/APKINDEX.tar.gz\n' "$DIR"
     else
+        # Fallback to unsigned (for local testing)
         mv "$TEMP_INDEX" "${DIR}/APKINDEX.tar.gz"
-        printf 'index: unsigned %s/APKINDEX.tar.gz\n' "$DIR"
+        printf 'index: WARNING: unsigned %s/APKINDEX.tar.gz (no private key)\n' "$DIR"
     fi
 }
 
