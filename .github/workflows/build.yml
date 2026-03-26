@@ -245,7 +245,8 @@ jobs:
           git config user.name "silex-ci"
           git config user.email "ci@silex"
           # Stage additions, modifications, AND deletions (e.g. v2→v3 format migration).
-          git add -A x86_64/ aarch64/ keys/
+          # -f to force-add files that are in .gitignore (*.apk, APKINDEX.tar.gz).
+          git add -f x86_64/ aarch64/ keys/
           git commit -m "rebuild $(date -u +%Y-%m-%dT%H:%M:%SZ)" || true
           git pull --rebase origin main
           git push
