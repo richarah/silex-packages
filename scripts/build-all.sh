@@ -32,6 +32,17 @@ for _apk in "$REPO_DIR"/*.apk; do
 done
 unset _apk
 
+# Format version sentinel: clear cached packages when the APK assembly
+# format changes (e.g. adding SHA1 PAX headers) so they are rebuilt.
+_FORMAT="apk-tar-v1"
+_FORMAT_FILE="$REPO_DIR/.format-version"
+if [ ! -f "$_FORMAT_FILE" ] || [ "$(cat "$_FORMAT_FILE" 2>/dev/null)" != "$_FORMAT" ]; then
+    printf 'format version changed, clearing package cache\n'
+    rm -f "$REPO_DIR"/*.apk "$REPO_DIR"/APKINDEX.tar.gz
+    printf '%s\n' "$_FORMAT" > "$_FORMAT_FILE"
+fi
+unset _FORMAT _FORMAT_FILE
+
 # Load Silex compiler flags
 [ -f "$REPO_ROOT/config/cflags.conf" ] && . "$REPO_ROOT/config/cflags.conf"
 
