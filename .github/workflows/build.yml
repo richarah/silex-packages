@@ -48,7 +48,8 @@ jobs:
           make -j$(nproc) \
               CC=clang \
               CFLAGS="-O2 -include /tmp/strlcpy_compat.h" \
-              LDFLAGS="-L./libfetch -lfetch -lssl -lcrypto" \
+              LDFLAGS="-L./libfetch" \
+              LDLIBS="-lfetch -lssl -lcrypto" \
               STATIC=y \
               LUA=no
           install -m755 src/apk.static /usr/local/bin/apk
@@ -140,7 +141,8 @@ jobs:
           make -j$(nproc) \
               CC=clang \
               CFLAGS="-O2 -include /tmp/strlcpy_compat.h" \
-              LDFLAGS="-L./libfetch -lfetch -lssl -lcrypto" \
+              LDFLAGS="-L./libfetch" \
+              LDLIBS="-lfetch -lssl -lcrypto" \
               STATIC=y \
               LUA=no
           install -m755 src/apk.static /usr/local/bin/apk
