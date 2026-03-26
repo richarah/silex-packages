@@ -278,6 +278,9 @@ jobs:
         run: |
           git config user.name "silex-ci"
           git config user.email "ci@silex"
+          # Github CI being a PITA
+          touch .nojekyll
+          git add -f .nojekyll
           # Stage additions, modifications, AND deletions (e.g. v2→v3 format migration).
           # -f to force-add files that are in .gitignore (*.apk, APKINDEX.tar.gz).
           git add -f x86_64/ aarch64/ keys/
