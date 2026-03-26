@@ -6,7 +6,7 @@ on:
       - 'config/**'
       - 'scripts/**'
   schedule:
-    - cron: '0 4 * * 1'  # weekly Monday 04:00 UTC; catches bookworm security updates
+    - cron: '0 4 * * 1'
   workflow_dispatch:
 
 jobs:
@@ -45,11 +45,16 @@ jobs:
           cd /tmp/apk-tools-v3.0.5
           printf '#pragma once\n#include <string.h>\n#ifndef strlcpy\nstatic inline size_t strlcpy(char*d,const char*s,size_t n){size_t l=strlen(s);if(n){size_t c=l<n-1?l:n-1;__builtin_memcpy(d,s,c);d[c]=0;}return l;}\n#endif\n' \
               > /tmp/strlcpy_compat.h
-          # Build libfetch first
+          
+          echo "=== Building libfetch ==="
           make -C libfetch -j$(nproc) CC=clang CFLAGS="-O2 -include /tmp/strlcpy_compat.h" STATIC=y
-          ls -la libfetch/libfetch.a
-          nm libfetch/libfetch.a 2>/dev/null | grep -q fetchParseURL && echo "fetchParseURL found" || echo "fetchParseURL not found in libfetch.a"
-          # Build the rest
+          echo "=== libfetch build complete ==="
+          
+          echo "=== Checking libfetch.a ==="
+          ls -la libfetch/
+          ls -la libfetch/libfetch.a || echo "libfetch.a not found!"
+          
+          echo "=== Building main apk-tools ==="
           make -j$(nproc) \
               CC=clang \
               CFLAGS="-O2 -include /tmp/strlcpy_compat.h" \
@@ -57,10 +62,12 @@ jobs:
               LIBS="-lfetch -lssl -lcrypto" \
               STATIC=y \
               LUA=no
+          
+          echo "=== Installing ==="
           install -m755 src/apk.static /usr/local/bin/apk
           nm src/apk.static 2>/dev/null | grep -q 'ZSTD_compress' \
-              && printf 'apk: zstd support: yes\n' \
-              || printf 'apk: zstd support: no (ZSTD_compress not found)\n'
+              && echo 'apk: zstd support: yes' \
+              || echo 'apk: zstd support: no (ZSTD_compress not found)'
 
       - name: Upload apk binary (for test job)
         uses: actions/upload-artifact@v4
@@ -143,11 +150,16 @@ jobs:
           cd /tmp/apk-tools-v3.0.5
           printf '#pragma once\n#include <string.h>\n#ifndef strlcpy\nstatic inline size_t strlcpy(char*d,const char*s,size_t n){size_t l=strlen(s);if(n){size_t c=l<n-1?l:n-1;__builtin_memcpy(d,s,c);d[c]=0;}return l;}\n#endif\n' \
               > /tmp/strlcpy_compat.h
-          # Build libfetch first
+          
+          echo "=== Building libfetch ==="
           make -C libfetch -j$(nproc) CC=clang CFLAGS="-O2 -include /tmp/strlcpy_compat.h" STATIC=y
-          ls -la libfetch/libfetch.a
-          nm libfetch/libfetch.a 2>/dev/null | grep -q fetchParseURL && echo "fetchParseURL found" || echo "fetchParseURL not found in libfetch.a"
-          # Build the rest
+          echo "=== libfetch build complete ==="
+          
+          echo "=== Checking libfetch.a ==="
+          ls -la libfetch/
+          ls -la libfetch/libfetch.a || echo "libfetch.a not found!"
+          
+          echo "=== Building main apk-tools ==="
           make -j$(nproc) \
               CC=clang \
               CFLAGS="-O2 -include /tmp/strlcpy_compat.h" \
@@ -155,10 +167,12 @@ jobs:
               LIBS="-lfetch -lssl -lcrypto" \
               STATIC=y \
               LUA=no
+          
+          echo "=== Installing ==="
           install -m755 src/apk.static /usr/local/bin/apk
           nm src/apk.static 2>/dev/null | grep -q 'ZSTD_compress' \
-              && printf 'apk: zstd support: yes\n' \
-              || printf 'apk: zstd support: no (ZSTD_compress not found)\n'
+              && echo 'apk: zstd support: yes' \
+              || echo 'apk: zstd support: no (ZSTD_compress not found)'
 
       - name: Setup signing keys
         run: |
