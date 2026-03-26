@@ -63,10 +63,12 @@ while IFS= read -r pkg; do
         DEB=$(ls "$WORK"/*.deb 2>/dev/null | head -1)
         if [ -f "$DEB" ]; then
             # Versioned shared library: *.so.N (e.g. libssl.so.3, libz.so.1.2.11)
-            # Unversioned symlinks (libssl.so) are NOT matched by this pattern,
-            # so -dev packages default to repack.
+            # Skip symlink lines (first char 'l') — their $NF is the symlink target
+            # e.g. "libssl.so -> libssl.so.3" would falsely match \.so\.[0-9] on
+            # the target.  Only actual versioned files (in runtime -lib packages)
+            # trigger recompile; -dev packages with unversioned .so symlinks repack.
             if dpkg-deb -c "$DEB" 2>/dev/null \
-                    | awk '{print $NF}' \
+                    | awk '$1 !~ /^l/ {print $NF}' \
                     | grep -qE '\.so\.[0-9]'; then
                 CLASSIFIED=recompile
             fi

@@ -46,6 +46,7 @@ libedit-dev
 # Math
 libopenblas-dev
 libgmp-dev
+libtbb-dev
 
 # System
 libpcre2-dev
@@ -66,10 +67,13 @@ flex
 nasm
 yasm
 gperf
+gfortran
 
 # Languages
 python3-dev
 nodejs
+npm
+tcl
 
 # Utilities
 git
