@@ -111,6 +111,11 @@ static void pad_to_block(size_t sz) {
     if (rem) xwrite(_zeros, BSIZE - rem);
 }
 
+/* Strip leading "./" from path so apk v3 extract can locate entries. */
+static const char *strip_dotslash(const char *p) {
+    return (p[0] == '.' && p[1] == '/') ? p + 2 : p;
+}
+
 static unsigned int hdr_cksum(const char h[BSIZE]) {
     unsigned int s = 0, i;
     for (i = 0;   i < 148; i++) s += (unsigned char)h[i];
@@ -205,7 +210,7 @@ static void process_regular(const char *path, const struct stat *st) {
     write_pax(path, pax, (size_t)plen);
 
     char hdr[BSIZE];
-    make_hdr(hdr, path, (unsigned)st->st_mode, st->st_size, st->st_mtime, '0', NULL);
+    make_hdr(hdr, strip_dotslash(path), (unsigned)st->st_mode, st->st_size, st->st_mtime, '0', NULL);
     xwrite(hdr, BSIZE);
 
     int fd = open(path, O_RDONLY);
@@ -225,19 +230,20 @@ static void process_dir(const char *path, const struct stat *st) {
     const char *pax = "11 ctime=0\n11 atime=0\n";
     write_pax(path, pax, 22);
 
-    /* Directory entries must end with '/' in ustar */
+    /* Directory entries must end with '/' in ustar; strip leading "./" */
+    const char *base = strip_dotslash(path);
     char dpath[4096];
-    size_t plen = strlen(path);
-    if (path[plen-1] != '/') {
+    size_t plen = strlen(base);
+    if (plen > 0 && base[plen-1] != '/') {
         if (plen + 2 < sizeof(dpath)) {
-            memcpy(dpath, path, plen);
+            memcpy(dpath, base, plen);
             dpath[plen] = '/'; dpath[plen+1] = '\0';
         } else {
-            strncpy(dpath, path, sizeof(dpath)-1);
+            strncpy(dpath, base, sizeof(dpath)-1);
             dpath[sizeof(dpath)-1] = '\0';
         }
     } else {
-        strncpy(dpath, path, sizeof(dpath)-1);
+        strncpy(dpath, base, sizeof(dpath)-1);
         dpath[sizeof(dpath)-1] = '\0';
     }
 
@@ -256,7 +262,7 @@ static void process_symlink(const char *path, const struct stat *st) {
     write_pax(path, pax, 22);
 
     char hdr[BSIZE];
-    make_hdr(hdr, path, (unsigned)st->st_mode, 0, st->st_mtime, '2', target);
+    make_hdr(hdr, strip_dotslash(path), (unsigned)st->st_mode, 0, st->st_mtime, '2', target);
     xwrite(hdr, BSIZE);
 }
 

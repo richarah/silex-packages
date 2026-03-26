@@ -34,7 +34,7 @@ unset _apk
 
 # Format version sentinel: clear cached packages when the APK assembly
 # format changes (e.g. adding SHA1 PAX headers) so they are rebuilt.
-_FORMAT="apk-tar-v1"
+_FORMAT="apk-tar-v2"
 _FORMAT_FILE="$REPO_DIR/.format-version"
 if [ ! -f "$_FORMAT_FILE" ] || [ "$(cat "$_FORMAT_FILE" 2>/dev/null)" != "$_FORMAT" ]; then
     printf 'format version changed, clearing package cache\n'
