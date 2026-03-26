@@ -2,8 +2,8 @@
 # verify.sh [dir]
 # Verify all .apk files in dir (default: x86_64/ and aarch64/).
 # Checks:
-#   - Archive is a valid zstd-compressed tar
-#   - Contains a .PKGINFO member
+#   - Archive begins with a valid gzip stream (control section)
+#   - Contains a .PKGINFO member in the control stream
 #   - .PKGINFO has required fields: pkgname, pkgver, arch
 #   - APKINDEX.tar.gz is present and non-empty (if packages exist)
 
@@ -18,24 +18,22 @@ check_apk() {
     APK="$1"
     NAME=$(basename "$APK")
 
-    # Readable zstd?
-    if ! zstd -t "$APK" 2>/dev/null; then
-        printf 'FAIL %s: not a valid zstd file\n' "$NAME"
+    # Readable gzip (control stream)?
+    if ! gzip -t "$APK" 2>/dev/null; then
+        printf 'FAIL %s: not a valid gzip file\n' "$NAME"
         FAILURES=$((FAILURES + 1))
         return
     fi
 
-    # Contains .PKGINFO?
-    PKGINFO=$(zstd -dc "$APK" 2>/dev/null | tar -t 2>/dev/null \
-                  | grep -x '\.PKGINFO' | head -1)
-    if [ -z "$PKGINFO" ]; then
-        printf 'FAIL %s: no .PKGINFO member\n' "$NAME"
+    # Contains .PKGINFO in the control stream?
+    if ! tar -zxOf "$APK" .PKGINFO >/dev/null 2>&1; then
+        printf 'FAIL %s: no .PKGINFO in control stream\n' "$NAME"
         FAILURES=$((FAILURES + 1))
         return
     fi
 
     # Extract .PKGINFO and check required fields
-    INFO=$(zstd -dc "$APK" 2>/dev/null | tar -x .PKGINFO -O 2>/dev/null)
+    INFO=$(tar -zxOf "$APK" .PKGINFO 2>/dev/null)
 
     for field in pkgname pkgver arch; do
         if ! printf '%s' "$INFO" | grep -q "^$field = "; then

@@ -21,12 +21,12 @@ export SCRIPTS_DIR="$SCRIPT_DIR"
 
 mkdir -p "$REPO_DIR"
 
-# Remove any v2 (gzip) .apk files committed by older pipeline runs.
-# apk v3 only reads zstd; stale gzip packages cause 'apk index' to fail.
+# Remove any packages not in the expected gzip APK format.
+# Catches stale packages from format migrations (e.g. a prior zstd attempt).
 for _apk in "$REPO_DIR"/*.apk; do
     [ -f "$_apk" ] || continue
-    if ! zstd -t "$_apk" >/dev/null 2>&1; then
-        printf 'removing stale v2 package: %s\n' "$(basename "$_apk")"
+    if ! gzip -t "$_apk" >/dev/null 2>&1; then
+        printf 'removing incompatible package: %s\n' "$(basename "$_apk")"
         rm -f "$_apk"
     fi
 done

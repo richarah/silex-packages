@@ -32,7 +32,7 @@ jobs:
           apt-get install -y --no-install-recommends \
               clang mold ninja-build cmake meson autoconf automake \
               dpkg-dev devscripts fakeroot build-essential \
-              curl ca-certificates git file openssl zstd
+              curl ca-certificates git file openssl
 
       - name: Install apk-tools (static binary)
         run: |
@@ -105,7 +105,7 @@ jobs:
           apt-get install -y --no-install-recommends \
               clang mold ninja-build cmake meson autoconf automake \
               dpkg-dev devscripts fakeroot build-essential \
-              curl ca-certificates git file openssl zstd
+              curl ca-certificates git file openssl
 
       - name: Install apk-tools (static binary)
         run: |
@@ -231,7 +231,8 @@ jobs:
         run: |
           git config user.name "silex-ci"
           git config user.email "ci@silex"
-          git add -f x86_64/ aarch64/ keys/
+          # Stage additions, modifications, AND deletions (e.g. v2→v3 format migration).
+          git add -A x86_64/ aarch64/ keys/
           git commit -m "rebuild $(date -u +%Y-%m-%dT%H:%M:%SZ)" || true
           git pull --rebase origin main
           git push

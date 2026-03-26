@@ -3,14 +3,16 @@
 # Assemble an APK package from a staging directory.
 #
 # The staging directory must contain:
-#   .PKGINFO       — package metadata (MUST be first in archive)
+#   .PKGINFO       — package metadata (MUST be first in control stream)
 #   usr/, lib/, etc.   — file tree
 #
-# An APK is a zstd-compressed tar archive with .PKGINFO as the first member.
-# Requires apk-tools v3 to install (apk v2 only reads gzip).
+# An APK is two concatenated gzip-compressed tar streams:
+#   Stream 1 (control): .PKGINFO + optional hook scripts
+#   Stream 2 (data):    file tree
+#
+# This is the standard v2 APK format, readable by apk-tools v2 and v3.
 # Optional pre/post install scripts (.pre-install, .post-install, etc.)
-# must also precede the file tree; they are included before the tree
-# if present in the staging dir.
+# are included in the control stream if present in the staging dir.
 
 set -e
 
@@ -21,26 +23,29 @@ OUTPUT="$2"
 [ -n "$OUTPUT" ]   || { printf 'mkapk: output path required\n' >&2; exit 1; }
 [ -f "$STAGING/.PKGINFO" ] || { printf 'mkapk: %s/.PKGINFO not found\n' "$STAGING" >&2; exit 1; }
 
-FILELIST=$(mktemp)
-trap 'rm -f "$FILELIST"' EXIT INT TERM
+CTRL_LIST=$(mktemp)
+DATA_LIST=$(mktemp)
+TMPOUT=$(mktemp)
+trap 'rm -f "$CTRL_LIST" "$DATA_LIST" "$TMPOUT"' EXIT INT TERM
 
-# .PKGINFO must be first
-printf '.PKGINFO\n' >> "$FILELIST"
-
-# Optional control scripts (before file tree)
+# Control stream file list: .PKGINFO first, then any hook scripts
+printf '.PKGINFO\n' >> "$CTRL_LIST"
 for ctrl in .pre-install .post-install .pre-upgrade .post-upgrade .pre-deinstall .post-deinstall; do
-    [ -f "$STAGING/$ctrl" ] && printf '%s\n' "$ctrl" >> "$FILELIST"
+    [ -f "$STAGING/$ctrl" ] && printf '%s\n' "$ctrl" >> "$CTRL_LIST"
 done
 
-# File tree: everything except .PKGINFO and control scripts
+# Data stream file list: everything except control files
 (cd "$STAGING" && find . -mindepth 1 \
     ! -name '.PKGINFO' \
     ! -name '.pre-install'   ! -name '.post-install' \
     ! -name '.pre-upgrade'   ! -name '.post-upgrade' \
     ! -name '.pre-deinstall' ! -name '.post-deinstall' \
-    | sort) >> "$FILELIST"
+    | sort) >> "$DATA_LIST"
 
-# Build the archive. --no-recursion: file list already includes all paths.
-# zstd --ultra -22: maximum compression; -T0 uses all available CPUs.
-(cd "$STAGING" && tar -cf - --no-recursion -T "$FILELIST" \
-    | zstd --ultra -22 -T0 > "$OUTPUT")
+# Stream 1: control section (gzip-compressed tar)
+(cd "$STAGING" && tar -czf - --no-recursion -T "$CTRL_LIST") >> "$TMPOUT"
+
+# Stream 2: data section (gzip-compressed tar)
+(cd "$STAGING" && tar -czf - --no-recursion -T "$DATA_LIST") >> "$TMPOUT"
+
+mv "$TMPOUT" "$OUTPUT"
