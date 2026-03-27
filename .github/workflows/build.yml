@@ -568,14 +568,10 @@ jobs:
           cd /tmp && sudo tar -xzf apk.apk
           sudo cp sbin/apk.static /usr/local/bin/apk
           sudo chmod +x /usr/local/bin/apk
-          # Install abuild and dependencies from Alpine APK archive
-          curl -fsSL https://dl-cdn.alpinelinux.org/alpine/v3.23/main/aarch64/abuild-3.16.0-r0.apk -o /tmp/abuild.apk
-          cd /tmp && sudo tar -xzf abuild.apk -C /
-          # Install required runtime deps that abuild needs
           sudo apt-get install -y --no-install-recommends \
             patch git openssh-client rsync gawk meson cmake \
             build-essential pkgconf flex bison gperf
-          rm /tmp/apk.apk /tmp/abuild.apk
+          rm /tmp/apk.apk
       - name: Keys
         run: |
           mkdir -p keys /tmp/silex-keys
