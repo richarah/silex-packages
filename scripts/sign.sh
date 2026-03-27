@@ -1,28 +1,38 @@
 #!/bin/sh
 # sign.sh <privkey> <pubkey> <file>
-# Sign an APKINDEX.tar.gz (or .apk) using the APK v3 format.
-# Produces a single gzip stream containing both signature and original file.
+# Sign an APK index using the format abuild-sign uses.
 set -e
 
 PRIVKEY="$1"
 PUBKEY="$2"
 FILE="$3"
 
-[ -f "$PRIVKEY" ] || { printf 'sign: %s: private key not found\n' "$PRIVKEY" >&2; exit 1; }
-[ -f "$PUBKEY"  ] || { printf 'sign: %s: public key not found\n'  "$PUBKEY"  >&2; exit 1; }
-[ -f "$FILE"    ] || { printf 'sign: %s: file not found\n'         "$FILE"    >&2; exit 1; }
+[ -f "$PRIVKEY" ] || { printf 'sign: %s: not found\n' "$PRIVKEY" >&2; exit 1; }
+[ -f "$PUBKEY"  ] || { printf 'sign: %s: not found\n' "$PUBKEY"  >&2; exit 1; }
+[ -f "$FILE"    ] || { printf 'sign: %s: not found\n' "$FILE"    >&2; exit 1; }
 
 PUBKEY_NAME=$(basename "$PUBKEY")
-SIGFILE=".SIGN.RSA.${PUBKEY_NAME}"
 TMPDIR=$(mktemp -d)
 trap 'rm -rf "$TMPDIR"' EXIT INT TERM
 
-# Compute SHA-1 signature of the file (apk expects SHA-1, not SHA-256)
+SIGFILE=".SIGN.RSA.${PUBKEY_NAME}"
+
+# RSA-SHA1 signature
 openssl dgst -sha1 -sign "$PRIVKEY" -out "$TMPDIR/$SIGFILE" "$FILE"
 
-# Create a single gzip stream containing both signature and original file
-# This is the key difference: tar then gzip once, not gzip then cat
-tar -C "$TMPDIR" -cf - "$SIGFILE" "$FILE" | gzip -9 > "${FILE}.signed"
-mv "${FILE}.signed" "$FILE"
+# posix tar, then strip the two 512-byte end-of-archive null blocks
+cd "$TMPDIR"
+tar --format=posix \
+    --pax-option="exthdr.name=%d/PaxHeaders/%f,atime:=0,ctime:=0" \
+    --owner=0 --group=0 --numeric-owner \
+    --no-recursion -f - -c "$SIGFILE" > raw.tar
 
-printf 'signed: %s\n' "$FILE"
+# tar appends 2x 512-byte null blocks at the end. remove them.
+RAW_SIZE=$(wc -c < raw.tar)
+CUT_SIZE=$((RAW_SIZE - 1024))
+head -c "$CUT_SIZE" raw.tar | gzip -n -9 > sig.tar.gz
+
+# prepend signature to file
+TMPOUT=$(mktemp)
+cat sig.tar.gz "$FILE" > "$TMPOUT"
+mv "$TMPOUT" "$FILE"

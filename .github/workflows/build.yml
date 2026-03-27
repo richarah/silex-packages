@@ -249,7 +249,7 @@ jobs:
         run: |
           apt-get update -qq
           apt-get install -y --no-install-recommends \
-              curl ca-certificates openssl build-essential
+              curl ca-certificates openssl build-essential abuild
       - name: Get apk-tools static
         run: |
           curl -fsSL --retry 5 \
@@ -551,7 +551,7 @@ jobs:
         run: |
           apt-get update -qq
           apt-get install -y --no-install-recommends \
-              curl ca-certificates openssl build-essential
+              curl ca-certificates openssl build-essential abuild
       - name: Get apk-tools static
         run: |
           curl -fsSL --retry 5 \
