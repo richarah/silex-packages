@@ -19,9 +19,7 @@ do_index() {
     printf 'index: %s (%d packages)\n' "$DIR" "$count"
 
     TEMP_INDEX="${DIR}/APKINDEX.tmp"
-    
-    # Generate unsigned index first
-    apk index --allow-untrusted --arch "$ARCH" --output "$TEMP_INDEX" "$DIR"/*.apk
+
     # Generate unsigned index first
     apk index --allow-untrusted --arch "$ARCH" --output "$TEMP_INDEX" "$DIR"/*.apk
 
@@ -34,3 +32,13 @@ do_index() {
         mv "$TEMP_INDEX" "${DIR}/APKINDEX.tar.gz"
         printf 'index: WARNING: unsigned %s/APKINDEX.tar.gz (no private key)\n' "$DIR"
     fi
+}
+
+# Generate indexes for repositories
+if [ -d "$REPO_ROOT/packages/main" ]; then
+    do_index "$REPO_ROOT/packages/main" "${ARCH:-aarch64}"
+fi
+
+if [ -d "$REPO_ROOT/packages/testing" ]; then
+    do_index "$REPO_ROOT/packages/testing" "${ARCH:-aarch64}"
+fi
