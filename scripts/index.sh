@@ -15,17 +15,8 @@ do_index() {
 
     printf 'index: %s (%d packages)\n' "$DIR" "$count"
 
-    TEMP_INDEX="${DIR}/APKINDEX.tmp"
-    apk index --allow-untrusted --arch "$ARCH" --output "$TEMP_INDEX" "$DIR"/*.apk
-
-    if [ -n "$PRIVKEY" ] && [ -f "$PRIVKEY" ] && [ -s "$PRIVKEY" ]; then
-        "$SCRIPT_DIR/sign.sh" "$PRIVKEY" "$PUBKEY" "$TEMP_INDEX"
-        mv "$TEMP_INDEX" "${DIR}/APKINDEX.tar.gz"
-        printf 'index: signed %s/APKINDEX.tar.gz\n' "$DIR"
-    else
-        mv "$TEMP_INDEX" "${DIR}/APKINDEX.tar.gz"
-        printf 'index: WARNING: unsigned %s/APKINDEX.tar.gz (no private key)\n' "$DIR"
-    fi
+    apk index --allow-untrusted --arch "$ARCH" --output "${DIR}/APKINDEX.tar.gz" "$DIR"/*.apk
+    printf 'index: %s/APKINDEX.tar.gz\n' "$DIR"
 }
 
 if [ -n "$REPO_DIR" ]; then
