@@ -61,7 +61,7 @@ jobs:
     needs: prep-x86
     runs-on: ubuntu-latest
     container:
-      image: debian:bookwormhttps://github.com/richarah/silex-packages/blob/main/.github/workflows/build.yml
+      image: debian:bookworm
     strategy:
       fail-fast: false
       matrix:
