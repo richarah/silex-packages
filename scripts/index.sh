@@ -22,6 +22,8 @@ do_index() {
     
     # Generate unsigned index first
     apk index --allow-untrusted --arch "$ARCH" --output "$TEMP_INDEX" "$DIR"/*.apk
+    # Generate unsigned index first
+    apk index --allow-untrusted --arch "$ARCH" --output "$TEMP_INDEX" "$DIR"/*.apk
 
     # Sign the index if private key is available
     if [ -n "$PRIVKEY" ] && [ -f "$PRIVKEY" ] && [ -s "$PRIVKEY" ]; then
@@ -32,12 +34,3 @@ do_index() {
         mv "$TEMP_INDEX" "${DIR}/APKINDEX.tar.gz"
         printf 'index: WARNING: unsigned %s/APKINDEX.tar.gz (no private key)\n' "$DIR"
     fi
-}
-
-if [ -n "$REPO_DIR" ]; then
-    ARCH="${ARCH:-$(uname -m)}"
-    do_index "$REPO_DIR" "$ARCH"
-else
-    do_index "$REPO_ROOT/x86_64"  x86_64
-    do_index "$REPO_ROOT/aarch64" aarch64
-fi
