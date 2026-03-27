@@ -563,13 +563,17 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends openssl
-          # Get abuild from Alpine (not in Debian/Ubuntu repos)
-          curl -fsSL https://dl-cdn.alpinelinux.org/alpine/v3.23/main/aarch64/abuild-7.2.3-r0.apk -o /tmp/abuild.apk
-          sudo tar -xzf /tmp/abuild.apk -C /
+          # Install abuild and dependencies from Alpine APK archive
+          curl -fsSL https://dl-cdn.alpinelinux.org/alpine/v3.23/main/aarch64/abuild-3.16.0-r0.apk -o /tmp/abuild.apk
+          cd /tmp && sudo tar -xzf abuild.apk -C /
+          # Install required runtime deps that abuild needs
+          sudo apt-get install -y --no-install-recommends \
+            patch git openssh-client rsync gawk meson cmake \
+            build-essential pkgconf flex bison gperf
           rm /tmp/abuild.apk
       - name: Keys
         run: |
-          mkdir -p keys /tmp/silex-keys /etc/apk/keys
+          mkdir -p keys /tmp/silex-keys
           echo "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
           echo "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
           chmod 600 /tmp/silex-keys/silex-packages.rsa
@@ -598,7 +602,7 @@ jobs:
         with:
           name: recompiled-arm-L1
           path: aarch64/
-      - run: chmod +x scripts/*.sh && sudo chmod +x scripts/*.sh 2>/dev/null || true
+      - run: chmod +x scripts/*.sh
       - name: Index
         run: scripts/index.sh
         env:
