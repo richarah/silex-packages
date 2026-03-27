@@ -61,7 +61,7 @@ jobs:
     needs: prep-x86
     runs-on: ubuntu-latest
     container:
-      image: debian:bookworm
+      image: debian:bookwormhttps://github.com/richarah/silex-packages/blob/main/.github/workflows/build.yml
     strategy:
       fail-fast: false
       matrix:
@@ -620,10 +620,14 @@ jobs:
           path: aarch64/
       - name: Sign both indexes
         run: |
-          PACKAGER_PRIVKEY=/tmp/silex-keys/silex-packages.rsa \
-            abuild-sign -k /tmp/silex-keys/silex-packages.rsa \
-              x86_64/APKINDEX.tar.gz aarch64/APKINDEX.tar.gz
-      - uses: actions/upload-artifact@v5
+          for idx in x86_64/APKINDEX.tar.gz aarch64/APKINDEX.tar.gz; do
+            if [ -f "$idx" ]; then
+              PACKAGER_PRIVKEY=/tmp/silex-keys/silex-packages.rsa \
+                abuild-sign -k /tmp/silex-keys/silex-packages.rsa "$idx"
+            else
+              printf 'sign: %s not found, skipping\n' "$idx"
+            fi
+          done
         with:
           name: signed-x86_64
           path: x86_64/
