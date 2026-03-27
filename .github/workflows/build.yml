@@ -565,8 +565,8 @@ jobs:
           sudo apt-get install -y --no-install-recommends openssl
           # Install apk-tools-static for apk index and signing
           curl -fsSL https://dl-cdn.alpinelinux.org/alpine/v3.23/main/aarch64/apk-tools-static-3.0.5-r0.apk -o /tmp/apk.apk
-          cd /tmp && sudo tar -xzf apk.apk -C /
-          sudo cp /tmp/sbin/apk.static /usr/local/bin/apk
+          cd /tmp && sudo tar -xzf apk.apk
+          sudo cp sbin/apk.static /usr/local/bin/apk
           sudo chmod +x /usr/local/bin/apk
           # Install abuild and dependencies from Alpine APK archive
           curl -fsSL https://dl-cdn.alpinelinux.org/alpine/v3.23/main/aarch64/abuild-3.16.0-r0.apk -o /tmp/abuild.apk
