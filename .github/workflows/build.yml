@@ -659,7 +659,7 @@ jobs:
           destination: ./_site
       - name: Copy packages
         run: |
-          mkdir -p ./_site/x86_64 ./_site/aarch64 ./_site/keys
+          sudo sudo mkdir -p ./_site/x86_64 ./_site/aarch64 ./_site/keys && sudo chmod -R 777 ./_site/ && sudo chmod -R 777 ./_site/
           cp -r x86_64/* ./_site/x86_64/
           cp -r aarch64/* ./_site/aarch64/
           cp -r keys/* ./_site/keys/
