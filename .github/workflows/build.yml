@@ -560,17 +560,21 @@ jobs:
     container:
       image: alpine:3.23
     steps:
-      - uses: actions/checkout@v5
       - name: Install deps
-        run: apk add --no-cache openssl abuild
+        run: apk add --no-cache openssl abuild git
+      - name: Checkout
+        run: git clone --depth 1 https://github.com/richarah/silex-packages . 2>/dev/null || echo "Git clone skipped (files already present)"
       - name: Keys
         run: |
           mkdir -p keys /tmp/silex-keys /etc/apk/keys
           echo "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
           echo "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
           chmod 600 /tmp/silex-keys/silex-packages.rsa
-          cp /tmp/silex-keys/silex-packages.rsa.pub keys/
-          cp /tmp/silex-keys/silex-packages.rsa.pub /etc/apk/keys/
+          # Get key fingerprint and copy with proper name for apk
+          KEYID=$(openssl rsa -in /tmp/silex-keys/silex-packages.rsa -pubout 2>/dev/null | \
+                  openssl dgst -sha1 | sed 's/^.* //' | tail -c 9)
+          cp /tmp/silex-keys/silex-packages.rsa.pub "/etc/apk/keys/-${KEYID}.rsa.pub"
+          cp /tmp/silex-keys/silex-packages.rsa.pub "keys/-${KEYID}.rsa.pub"
         env:
           SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
           SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
