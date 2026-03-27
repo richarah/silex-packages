@@ -628,6 +628,7 @@ jobs:
               printf 'sign: %s not found, skipping\n' "$idx"
             fi
           done
+      - uses: actions/upload-artifact@v5
         with:
           name: signed-x86_64
           path: x86_64/
