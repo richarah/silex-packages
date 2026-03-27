@@ -89,11 +89,15 @@ jobs:
           apt-get update -qq
       - name: Keys
         run: |
-          mkdir -p keys /tmp/silex-keys
+          mkdir -p keys /tmp/silex-keys /etc/apk/keys
           echo "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
           echo "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
           chmod 600 /tmp/silex-keys/silex-packages.rsa
-          cp /tmp/silex-keys/silex-packages.rsa.pub keys/
+          # Get key fingerprint and copy with proper name for apk
+          KEYID=$(openssl rsa -in /tmp/silex-keys/silex-packages.rsa -pubout 2>/dev/null | \
+                  openssl dgst -sha1 | sed 's/^.* //' | tail -c 9)
+          cp /tmp/silex-keys/silex-packages.rsa.pub "/etc/apk/keys/-${KEYID}.rsa.pub"
+          cp /tmp/silex-keys/silex-packages.rsa.pub "keys/-${KEYID}.rsa.pub"
         env:
           SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
           SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
@@ -146,11 +150,15 @@ jobs:
           apt-get update -qq
       - name: Keys
         run: |
-          mkdir -p keys /tmp/silex-keys
+          mkdir -p keys /tmp/silex-keys /etc/apk/keys
           echo "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
           echo "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
           chmod 600 /tmp/silex-keys/silex-packages.rsa
-          cp /tmp/silex-keys/silex-packages.rsa.pub keys/
+          # Get key fingerprint and copy with proper name for apk
+          KEYID=$(openssl rsa -in /tmp/silex-keys/silex-packages.rsa -pubout 2>/dev/null | \
+                  openssl dgst -sha1 | sed 's/^.* //' | tail -c 9)
+          cp /tmp/silex-keys/silex-packages.rsa.pub "/etc/apk/keys/-${KEYID}.rsa.pub"
+          cp /tmp/silex-keys/silex-packages.rsa.pub "keys/-${KEYID}.rsa.pub"
         env:
           SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
           SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
@@ -205,11 +213,15 @@ jobs:
           apt-get update -qq
       - name: Keys
         run: |
-          mkdir -p keys /tmp/silex-keys
+          mkdir -p keys /tmp/silex-keys /etc/apk/keys
           echo "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
           echo "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
           chmod 600 /tmp/silex-keys/silex-packages.rsa
-          cp /tmp/silex-keys/silex-packages.rsa.pub keys/
+          # Get key fingerprint and copy with proper name for apk
+          KEYID=$(openssl rsa -in /tmp/silex-keys/silex-packages.rsa -pubout 2>/dev/null | \
+                  openssl dgst -sha1 | sed 's/^.* //' | tail -c 9)
+          cp /tmp/silex-keys/silex-packages.rsa.pub "/etc/apk/keys/-${KEYID}.rsa.pub"
+          cp /tmp/silex-keys/silex-packages.rsa.pub "keys/-${KEYID}.rsa.pub"
         env:
           SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
           SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
@@ -373,11 +385,15 @@ jobs:
           sed -i 's/-fomit-frame-pointer/-fomit-frame-pointer -fno-integrated-as/' config/cflags.conf
       - name: Keys
         run: |
-          mkdir -p keys /tmp/silex-keys
+          mkdir -p keys /tmp/silex-keys /etc/apk/keys
           echo "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
           echo "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
           chmod 600 /tmp/silex-keys/silex-packages.rsa
-          cp /tmp/silex-keys/silex-packages.rsa.pub keys/
+          # Get key fingerprint and copy with proper name for apk
+          KEYID=$(openssl rsa -in /tmp/silex-keys/silex-packages.rsa -pubout 2>/dev/null | \
+                  openssl dgst -sha1 | sed 's/^.* //' | tail -c 9)
+          cp /tmp/silex-keys/silex-packages.rsa.pub "/etc/apk/keys/-${KEYID}.rsa.pub"
+          cp /tmp/silex-keys/silex-packages.rsa.pub "keys/-${KEYID}.rsa.pub"
         env:
           SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
           SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
@@ -434,11 +450,15 @@ jobs:
           sed -i 's/-fomit-frame-pointer/-fomit-frame-pointer -fno-integrated-as/' config/cflags.conf
       - name: Keys
         run: |
-          mkdir -p keys /tmp/silex-keys
+          mkdir -p keys /tmp/silex-keys /etc/apk/keys
           echo "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
           echo "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
           chmod 600 /tmp/silex-keys/silex-packages.rsa
-          cp /tmp/silex-keys/silex-packages.rsa.pub keys/
+          # Get key fingerprint and copy with proper name for apk
+          KEYID=$(openssl rsa -in /tmp/silex-keys/silex-packages.rsa -pubout 2>/dev/null | \
+                  openssl dgst -sha1 | sed 's/^.* //' | tail -c 9)
+          cp /tmp/silex-keys/silex-packages.rsa.pub "/etc/apk/keys/-${KEYID}.rsa.pub"
+          cp /tmp/silex-keys/silex-packages.rsa.pub "keys/-${KEYID}.rsa.pub"
         env:
           SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
           SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
@@ -497,11 +517,15 @@ jobs:
           sed -i 's/-fomit-frame-pointer/-fomit-frame-pointer -fno-integrated-as/' config/cflags.conf
       - name: Keys
         run: |
-          mkdir -p keys /tmp/silex-keys
+          mkdir -p keys /tmp/silex-keys /etc/apk/keys
           echo "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
           echo "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
           chmod 600 /tmp/silex-keys/silex-packages.rsa
-          cp /tmp/silex-keys/silex-packages.rsa.pub keys/
+          # Get key fingerprint and copy with proper name for apk
+          KEYID=$(openssl rsa -in /tmp/silex-keys/silex-packages.rsa -pubout 2>/dev/null | \
+                  openssl dgst -sha1 | sed 's/^.* //' | tail -c 9)
+          cp /tmp/silex-keys/silex-packages.rsa.pub "/etc/apk/keys/-${KEYID}.rsa.pub"
+          cp /tmp/silex-keys/silex-packages.rsa.pub "keys/-${KEYID}.rsa.pub"
         env:
           SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
           SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
@@ -534,20 +558,11 @@ jobs:
     needs: [repack-arm, recompile-arm-L1]
     runs-on: ubuntu-24.04-arm
     container:
-      image: debian:bookworm
+      image: alpine:3.23
     steps:
       - uses: actions/checkout@v5
       - name: Install deps
-        run: apt-get update -qq && apt-get install -y --no-install-recommends curl ca-certificates openssl
-
-      - name: Get apk-tools static
-        run: |
-          curl -fsSL --retry 5 \
-              "https://dl-cdn.alpinelinux.org/alpine/v3.23/main/aarch64/apk-tools-static-3.0.5-r0.apk" \
-              -o /tmp/apk.apk
-          tar -xzf /tmp/apk.apk -C /tmp
-          cp /tmp/sbin/apk.static /usr/local/bin/apk
-          chmod +x /usr/local/bin/apk
+        run: apk add --no-cache openssl abuild
       - name: Keys
         run: |
           mkdir -p keys /tmp/silex-keys /etc/apk/keys
