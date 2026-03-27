@@ -5,7 +5,7 @@ set -e
 
 PRIVKEY="$1"
 PUBKEY="$2"
-FILE="$3"
+FILE="$(cd "$(dirname "$3")" && pwd)/$(basename "$3")"
 
 [ -f "$PRIVKEY" ] || { printf 'sign: %s: not found\n' "$PRIVKEY" >&2; exit 1; }
 [ -f "$PUBKEY"  ] || { printf 'sign: %s: not found\n' "$PUBKEY"  >&2; exit 1; }
