@@ -557,13 +557,12 @@ jobs:
     name: Merge & index (aarch64)
     needs: [repack-arm, recompile-arm-L1]
     runs-on: ubuntu-24.04-arm
-    container:
-      image: alpine:3.23
     steps:
+      - uses: actions/checkout@v5
       - name: Install deps
-        run: apk add --no-cache openssl abuild git
-      - name: Checkout
-        run: git clone --depth 1 https://github.com/richarah/silex-packages . 2>/dev/null || echo "Git clone skipped (files already present)"
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends openssl abuild
       - name: Keys
         run: |
           mkdir -p keys /tmp/silex-keys /etc/apk/keys
@@ -573,7 +572,8 @@ jobs:
           # Get key fingerprint and copy with proper name for apk
           KEYID=$(openssl rsa -in /tmp/silex-keys/silex-packages.rsa -pubout 2>/dev/null | \
                   openssl dgst -sha1 | sed 's/^.* //' | tail -c 9)
-          cp /tmp/silex-keys/silex-packages.rsa.pub "/etc/apk/keys/-${KEYID}.rsa.pub"
+          sudo mkdir -p /etc/apk/keys
+          sudo cp /tmp/silex-keys/silex-packages.rsa.pub "/etc/apk/keys/-${KEYID}.rsa.pub"
           cp /tmp/silex-keys/silex-packages.rsa.pub "keys/-${KEYID}.rsa.pub"
         env:
           SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
@@ -594,7 +594,7 @@ jobs:
         with:
           name: recompiled-arm-L1
           path: aarch64/
-      - run: chmod +x scripts/*.sh
+      - run: chmod +x scripts/*.sh && sudo chmod +x scripts/*.sh 2>/dev/null || true
       - name: Index
         run: scripts/index.sh
         env:
