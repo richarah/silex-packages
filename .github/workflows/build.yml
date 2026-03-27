@@ -612,11 +612,11 @@ jobs:
           SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
       - uses: actions/download-artifact@v5
         with:
-          name: signed-x86_64
+          name: packages-x86_64
           path: x86_64/
       - uses: actions/download-artifact@v5
         with:
-          name: signed-aarch64
+          name: packages-aarch64
           path: aarch64/
       - name: Sign both indexes
         run: |
