@@ -25,8 +25,7 @@ do_index() {
 
     # Sign the index if private key is available
     if [ -n "$PRIVKEY" ] && [ -f "$PRIVKEY" ] && [ -s "$PRIVKEY" ]; then
-        apk sign --sign-key "$PRIVKEY" --output "${DIR}/APKINDEX.tar.gz" "$TEMP_INDEX"
-        rm -f "$TEMP_INDEX"
+        "$SCRIPT_DIR/sign.sh" "$PRIVKEY" "$PUBKEY" "$TEMP_INDEX"; mv "$TEMP_INDEX" "${DIR}/APKINDEX.tar.gz"
         printf 'index: signed %s/APKINDEX.tar.gz\n' "$DIR"
     else
         # Fallback to unsigned (for local testing)
