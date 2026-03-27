@@ -8,6 +8,7 @@ CONF="$REPO_ROOT/config/recompile-layers.conf"
 [ -f "$CONF" ] || { printf '%s not found\n' "$CONF" >&2; exit 1; }
 REPO_DIR="${REPO_DIR:-$REPO_ROOT/${ARCH:-x86_64}}"
 export REPO_DIR
+export PRIVKEY PUBKEY
 mkdir -p "$REPO_DIR"
 
 for apk in "$REPO_DIR"/*.apk; do

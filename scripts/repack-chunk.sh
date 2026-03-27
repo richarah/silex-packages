@@ -14,6 +14,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 export ARCH="${ARCH:-$(uname -m)}"
 export REPO_DIR="${REPO_DIR:-$REPO_ROOT/$ARCH}"
 export SCRIPTS_DIR="$SCRIPT_DIR"
+export PRIVKEY PUBKEY
 
 mkdir -p "$REPO_DIR"
 

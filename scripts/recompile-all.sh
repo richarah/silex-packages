@@ -5,7 +5,9 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 export ARCH="${ARCH:-$(uname -m)}"
+export PRIVKEY PUBKEY
 export REPO_DIR="${REPO_DIR:-$REPO_ROOT/$ARCH}"
+export PRIVKEY PUBKEY
 export SCRIPTS_DIR="$SCRIPT_DIR"
 
 mkdir -p "$REPO_DIR"
