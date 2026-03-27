@@ -590,11 +590,53 @@ jobs:
           name: packages-aarch64
           path: aarch64/
 
+  sign-indexes:
+    name: Sign indexes
+    needs: [merge-x86, merge-arm]
+    runs-on: ubuntu-latest
+    container:
+      image: alpine:3.23
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install deps
+        run: apk add --no-cache openssl abuild
+      - name: Keys
+        run: |
+          mkdir -p /tmp/silex-keys /etc/apk/keys
+          echo "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
+          echo "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
+          chmod 600 /tmp/silex-keys/silex-packages.rsa
+          cp /tmp/silex-keys/silex-packages.rsa.pub /etc/apk/keys/
+        env:
+          SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
+          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
+      - uses: actions/download-artifact@v5
+        with:
+          name: signed-x86_64
+          path: x86_64/
+      - uses: actions/download-artifact@v5
+        with:
+          name: signed-aarch64
+          path: aarch64/
+      - name: Sign both indexes
+        run: |
+          PACKAGER_PRIVKEY=/tmp/silex-keys/silex-packages.rsa \
+            abuild-sign -k /tmp/silex-keys/silex-packages.rsa \
+              x86_64/APKINDEX.tar.gz aarch64/APKINDEX.tar.gz
+      - uses: actions/upload-artifact@v5
+        with:
+          name: signed-x86_64
+          path: x86_64/
+      - uses: actions/upload-artifact@v5
+        with:
+          name: signed-aarch64
+          path: aarch64/
+
   # ── test & deploy ───────────────────────────────────────
 
   test:
     name: Test (x86_64)
-    needs: merge-x86
+    needs: sign-indexes
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -635,7 +677,7 @@ jobs:
 
   deploy:
     name: Deploy to Pages
-    needs: [merge-x86, merge-arm, test]
+    needs: [sign-indexes, test]
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -647,11 +689,11 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v5
         with:
-          name: packages-x86_64
+          name: signed-x86_64
           path: x86_64/
       - uses: actions/download-artifact@v5
         with:
-          name: packages-aarch64
+          name: signed-aarch64
           path: aarch64/
       - uses: actions/jekyll-build-pages@v1
         with:
