@@ -21,7 +21,7 @@ do_index() {
     TEMP_INDEX="${DIR}/APKINDEX.tmp"
     
     # Generate unsigned index first
-    apk index --arch "$ARCH" --output "$TEMP_INDEX" "$DIR"/*.apk
+    apk index --allow-untrusted --arch "$ARCH" --output "$TEMP_INDEX" "$DIR"/*.apk
 
     # Sign the index if private key is available
     if [ -n "$PRIVKEY" ] && [ -f "$PRIVKEY" ] && [ -s "$PRIVKEY" ]; then
