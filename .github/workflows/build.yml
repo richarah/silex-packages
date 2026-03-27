@@ -296,7 +296,7 @@ jobs:
     name: Prep (aarch64)
     runs-on: ubuntu-24.04-arm
     container:
-      image: alpine:3.23
+      image: debian:bookworm
     steps:
       - uses: actions/checkout@v5
       - name: Install deps
@@ -341,7 +341,7 @@ jobs:
     needs: prep-arm
     runs-on: ubuntu-24.04-arm
     container:
-      image: alpine:3.23
+      image: debian:bookworm
     strategy:
       fail-fast: false
       matrix:
@@ -403,7 +403,7 @@ jobs:
     needs: prep-arm
     runs-on: ubuntu-24.04-arm
     container:
-      image: alpine:3.23
+      image: debian:bookworm
     steps:
       - uses: actions/checkout@v5
       - name: Install deps
@@ -466,7 +466,7 @@ jobs:
     needs: recompile-arm-L0
     runs-on: ubuntu-24.04-arm
     container:
-      image: alpine:3.23
+      image: debian:bookworm
     steps:
       - uses: actions/checkout@v5
       - name: Install deps
@@ -629,7 +629,7 @@ jobs:
               x86_64/libffi-dev-*.x86_64.apk \
               x86_64/bzip2-*.x86_64.apk
           test -f "$R/usr/include/zlib.h" || { printf 'FAIL: zlib.h\n'; exit 1; }
-          test -f "$R/usr/include/ffi.h"  || { printf 'FAIL: ffi.h\n';  exit 1; }
+          test -f "$R/usr/include/ffi.h" -o -f "$R/usr/include/x86_64-linux-gnu/ffi.h"  || { printf 'FAIL: ffi.h\n';  exit 1; }
           test -f "$R/bin/bzip2"          || { printf 'FAIL: bzip2\n';  exit 1; }
           printf 'PASS\n'
 
