@@ -242,22 +242,12 @@ jobs:
     needs: [repack-x86, recompile-x86-L1]
     runs-on: ubuntu-latest
     container:
-      image: debian:bookworm
+      image: alpine:3.23
     steps:
       - uses: actions/checkout@v5
       - name: Install deps
-        run: |
-          apt-get update -qq
-          apt-get install -y --no-install-recommends \
-              curl ca-certificates openssl build-essential
-      - name: Get apk-tools static
-        run: |
-          curl -fsSL --retry 5 \
-              "https://dl-cdn.alpinelinux.org/alpine/v3.23/main/x86_64/apk-tools-static-3.0.5-r0.apk" \
-              -o /tmp/apk.apk
-          tar -xzf /tmp/apk.apk -C /tmp
-          cp /tmp/sbin/apk.static /usr/local/bin/apk
-          chmod +x /usr/local/bin/apk
+        run: apk add --no-cache openssl abuild
+
       - name: Keys
         run: |
           mkdir -p keys /tmp/silex-keys /etc/apk/keys
@@ -306,7 +296,7 @@ jobs:
     name: Prep (aarch64)
     runs-on: ubuntu-24.04-arm
     container:
-      image: debian:bookworm
+      image: alpine:3.23
     steps:
       - uses: actions/checkout@v5
       - name: Install deps
@@ -351,7 +341,7 @@ jobs:
     needs: prep-arm
     runs-on: ubuntu-24.04-arm
     container:
-      image: debian:bookworm
+      image: alpine:3.23
     strategy:
       fail-fast: false
       matrix:
@@ -413,7 +403,7 @@ jobs:
     needs: prep-arm
     runs-on: ubuntu-24.04-arm
     container:
-      image: debian:bookworm
+      image: alpine:3.23
     steps:
       - uses: actions/checkout@v5
       - name: Install deps
@@ -476,7 +466,7 @@ jobs:
     needs: recompile-arm-L0
     runs-on: ubuntu-24.04-arm
     container:
-      image: debian:bookworm
+      image: alpine:3.23
     steps:
       - uses: actions/checkout@v5
       - name: Install deps
@@ -544,22 +534,12 @@ jobs:
     needs: [repack-arm, recompile-arm-L1]
     runs-on: ubuntu-24.04-arm
     container:
-      image: debian:bookworm
+      image: alpine:3.23
     steps:
       - uses: actions/checkout@v5
       - name: Install deps
-        run: |
-          apt-get update -qq
-          apt-get install -y --no-install-recommends \
-              curl ca-certificates openssl build-essential
-      - name: Get apk-tools static
-        run: |
-          curl -fsSL --retry 5 \
-              "https://dl-cdn.alpinelinux.org/alpine/v3.23/main/aarch64/apk-tools-static-3.0.5-r0.apk" \
-              -o /tmp/apk.apk
-          tar -xzf /tmp/apk.apk -C /tmp
-          cp /tmp/sbin/apk.static /usr/local/bin/apk
-          chmod +x /usr/local/bin/apk
+        run: apk add --no-cache openssl abuild
+
       - name: Keys
         run: |
           mkdir -p keys /tmp/silex-keys /etc/apk/keys
