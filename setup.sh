@@ -1,3 +1,131 @@
+#!/bin/sh
+# run from silex-packages root
+set -e
+
+# New scripts
+cat > scripts/prep.sh << 'EOF'
+#!/bin/sh
+# prep.sh — resolve dependency closure and classify packages.
+# Outputs repack.list and recompile.list to $REPO_ROOT/lists/
+set -e
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+export ARCH="${ARCH:-$(uname -m)}"
+
+mkdir -p "$REPO_ROOT/lists"
+
+# Compile apk-tar helper
+cc -O2 -o /tmp/silex-apk-tar "$SCRIPT_DIR/apk-tar.c" ||
+    { printf 'ERROR: failed to compile apk-tar.c\n' >&2; exit 1; }
+
+CLOSURE=$(mktemp)
+RECOMPILE="$REPO_ROOT/lists/recompile.list"
+REPACK="$REPO_ROOT/lists/repack.list"
+trap 'rm -f "$CLOSURE"' EXIT INT TERM
+
+printf '=== resolving dependency closure ===\n'
+"$SCRIPT_DIR/resolve-deps.sh" > "$CLOSURE"
+printf '%d packages in closure\n' "$(wc -l < "$CLOSURE")"
+
+printf '=== classifying packages ===\n'
+"$SCRIPT_DIR/classify.sh" "$RECOMPILE" "$REPACK" < "$CLOSURE"
+
+printf '=== prep done ===\n'
+printf 'recompile: %d\n' "$(wc -l < "$RECOMPILE")"
+printf 'repack:    %d\n' "$(wc -l < "$REPACK")"
+EOF
+
+cat > scripts/repack-chunk.sh << 'EOF'
+#!/bin/sh
+# repack-chunk.sh <chunk> <total>
+# Repack every Nth package from lists/repack.list.
+# Chunk is 0-indexed. Skips packages already built.
+set -e
+CHUNK="$1"
+TOTAL="$2"
+
+[ -n "$CHUNK" ] || { printf 'usage: repack-chunk.sh <chunk> <total>\n' >&2; exit 1; }
+[ -n "$TOTAL" ] || { printf 'usage: repack-chunk.sh <chunk> <total>\n' >&2; exit 1; }
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+export ARCH="${ARCH:-$(uname -m)}"
+export REPO_DIR="${REPO_DIR:-$REPO_ROOT/$ARCH}"
+export SCRIPTS_DIR="$SCRIPT_DIR"
+
+mkdir -p "$REPO_DIR"
+
+[ -f "$REPO_ROOT/config/cflags.conf" ] && . "$REPO_ROOT/config/cflags.conf"
+export CC CXX CFLAGS CXXFLAGS LDFLAGS STRIP
+export PRIVKEY PUBKEY
+
+LIST="$REPO_ROOT/lists/repack.list"
+[ -f "$LIST" ] || { printf 'repack-chunk: %s not found\n' "$LIST" >&2; exit 1; }
+
+# Compile apk-tar helper
+cc -O2 -o /tmp/silex-apk-tar "$SCRIPT_DIR/apk-tar.c" ||
+    { printf 'ERROR: failed to compile apk-tar.c\n' >&2; exit 1; }
+
+TOTAL_PKGS=$(wc -l < "$LIST")
+printf 'repack-chunk: chunk %s/%s (%d total packages)\n' "$CHUNK" "$TOTAL" "$TOTAL_PKGS"
+
+sed -n "$((CHUNK + 1))~${TOTAL}p" "$LIST" | while IFS= read -r pkg; do
+    [ -n "$pkg" ] || continue
+    if ls "$REPO_DIR/$pkg-"[0-9]*.apk >/dev/null 2>&1; then
+        printf 'cached  %s\n' "$pkg"
+    else
+        "$SCRIPT_DIR/repack.sh" "$pkg" ||
+            printf 'WARNING: repack failed for %s\n' "$pkg" >&2
+    fi
+done
+
+printf 'repack-chunk %s: done\n' "$CHUNK"
+EOF
+
+cat > scripts/recompile-all.sh << 'EOF'
+#!/bin/sh
+# recompile-all.sh — recompile all packages in lists/recompile.list.
+# Skips packages already built.
+set -e
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+export ARCH="${ARCH:-$(uname -m)}"
+export REPO_DIR="${REPO_DIR:-$REPO_ROOT/$ARCH}"
+export SCRIPTS_DIR="$SCRIPT_DIR"
+
+mkdir -p "$REPO_DIR"
+
+[ -f "$REPO_ROOT/config/cflags.conf" ] && . "$REPO_ROOT/config/cflags.conf"
+export CC CXX CFLAGS CXXFLAGS LDFLAGS STRIP
+export PRIVKEY PUBKEY
+
+LIST="$REPO_ROOT/lists/recompile.list"
+[ -f "$LIST" ] || { printf 'recompile-all: %s not found\n' "$LIST" >&2; exit 1; }
+
+# Compile apk-tar helper
+cc -O2 -o /tmp/silex-apk-tar "$SCRIPT_DIR/apk-tar.c" ||
+    { printf 'ERROR: failed to compile apk-tar.c\n' >&2; exit 1; }
+
+printf '=== recompiling %d packages ===\n' "$(wc -l < "$LIST")"
+
+while IFS= read -r pkg; do
+    [ -n "$pkg" ] || continue
+    case "$pkg" in '#'*) continue ;; esac
+    if ls "$REPO_DIR/$pkg-"[0-9]*.apk >/dev/null 2>&1; then
+        printf 'cached  %s\n' "$pkg"
+    else
+        "$SCRIPT_DIR/recompile.sh" "$pkg" ||
+            printf 'WARNING: recompile failed for %s\n' "$pkg" >&2
+    fi
+done < "$LIST"
+
+printf '=== recompile done ===\n'
+EOF
+
+chmod +x scripts/prep.sh scripts/repack-chunk.sh scripts/recompile-all.sh
+
+# Workflow
+cat > .github/workflows/build.yml << 'WORKFLOW'
 name: Build packages (parallel)
 
 on:
@@ -525,3 +653,7 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+WORKFLOW
+
+printf 'done. 3 new scripts + workflow replaced.\n'
+printf 'git add -A && git commit -m "parallel build: 12 repack runners per arch" && git push\n'
