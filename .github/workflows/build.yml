@@ -534,12 +534,20 @@ jobs:
     needs: [repack-arm, recompile-arm-L1]
     runs-on: ubuntu-24.04-arm
     container:
-      image: alpine:3.23
+      image: debian:bookworm
     steps:
       - uses: actions/checkout@v5
       - name: Install deps
-        run: apk add --no-cache openssl abuild
+        run: apt-get update -qq && apt-get install -y --no-install-recommends curl ca-certificates openssl
 
+      - name: Get apk-tools static
+        run: |
+          curl -fsSL --retry 5 \
+              "https://dl-cdn.alpinelinux.org/alpine/v3.23/main/aarch64/apk-tools-static-3.0.5-r0.apk" \
+              -o /tmp/apk.apk
+          tar -xzf /tmp/apk.apk -C /tmp
+          cp /tmp/sbin/apk.static /usr/local/bin/apk
+          chmod +x /usr/local/bin/apk
       - name: Keys
         run: |
           mkdir -p keys /tmp/silex-keys /etc/apk/keys
