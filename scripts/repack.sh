@@ -58,4 +58,8 @@ OUTPUT="$REPO_DIR/${PKGNAME}-${PKGVER}.${ARCH}.apk"
 # Assemble .apk
 "$SCRIPTS_DIR/mkapk.sh" "$STAGING" "$OUTPUT"
 
+if [ -n "$PRIVKEY" ] && [ -f "$PRIVKEY" ]; then
+    "$SCRIPTS_DIR/sign.sh" "$PRIVKEY" "$PUBKEY" "$OUTPUT"
+fi
+
 printf 'repacked: %s -> %s\n' "$PKG" "$(basename "$OUTPUT")"
