@@ -10,6 +10,9 @@ on:
     - cron: '0 4 * * 1'
   workflow_dispatch:
 
+# ── reusable fragments ────────────────────────────────────
+# (YAML anchors don't work in GHA, so we repeat the blocks)
+
 jobs:
   # ── x86_64 ──────────────────────────────────────────────
 
@@ -19,7 +22,7 @@ jobs:
     container:
       image: debian:bookworm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install deps
         run: |
           apt-get update -qq
@@ -40,14 +43,18 @@ jobs:
           fi
           apt-get update -qq
       - run: chmod +x scripts/*.sh
+      - name: Generate recompile layers
+        run: scripts/gen-layers.sh
       - name: Prep
         run: scripts/prep.sh
         env:
           ARCH: x86_64
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: lists-x86_64
-          path: lists/
+          path: |
+            lists/
+            config/recompile-layers.conf
 
   repack-x86:
     name: Repack x86 (${{ matrix.chunk }})
@@ -60,7 +67,7 @@ jobs:
       matrix:
         chunk: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install deps
         run: |
           apt-get update -qq
@@ -90,10 +97,10 @@ jobs:
         env:
           SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
           SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: lists-x86_64
-          path: lists/
+          path: .
       - run: chmod +x scripts/*.sh
       - name: Repack
         run: scripts/repack-chunk.sh ${{ matrix.chunk }} 12
@@ -101,20 +108,20 @@ jobs:
           ARCH:    x86_64
           PRIVKEY: /tmp/silex-keys/silex-packages.rsa
           PUBKEY:  /tmp/silex-keys/silex-packages.rsa.pub
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: repack-x86-${{ matrix.chunk }}
           path: x86_64/*.apk
           if-no-files-found: ignore
 
-  recompile-x86:
-    name: Recompile (x86_64)
+  recompile-x86-L0:
+    name: Recompile x86 L0
     needs: prep-x86
     runs-on: ubuntu-latest
     container:
       image: debian:bookworm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install deps
         run: |
           apt-get update -qq
@@ -147,31 +154,97 @@ jobs:
         env:
           SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
           SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: lists-x86_64
-          path: lists/
+          path: .
       - run: chmod +x scripts/*.sh
-      - name: Recompile
-        run: scripts/recompile-all.sh
+      - name: Compile apk-tar
+        run: cc -O2 -o /tmp/silex-apk-tar scripts/apk-tar.c
+      - name: Recompile layer 0
+        run: scripts/recompile-layer.sh 0
         env:
           ARCH:    x86_64
           PRIVKEY: /tmp/silex-keys/silex-packages.rsa
           PUBKEY:  /tmp/silex-keys/silex-packages.rsa.pub
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
-          name: recompiled-x86
+          name: recompiled-x86-L0
+          path: x86_64/*.apk
+          if-no-files-found: ignore
+
+  recompile-x86-L1:
+    name: Recompile x86 L1
+    needs: recompile-x86-L0
+    runs-on: ubuntu-latest
+    container:
+      image: debian:bookworm
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install deps
+        run: |
+          apt-get update -qq
+          apt-get install -y --no-install-recommends \
+              clang mold ninja-build cmake meson autoconf automake \
+              dpkg-dev devscripts fakeroot build-essential \
+              curl ca-certificates git file openssl \
+              libzstd-dev libssl-dev zlib1g-dev pkg-config
+      - name: Fix apt
+        run: |
+          echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/99sandbox
+          mkdir -p /var/lib/apt/lists/partial
+          chown -R _apt:root /var/lib/apt/lists 2>/dev/null || true
+          chmod 755 /var/lib/apt/lists
+      - name: Enable deb-src
+        run: |
+          if [ -f /etc/apt/sources.list.d/debian.sources ]; then
+            sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/debian.sources
+          elif [ -f /etc/apt/sources.list ]; then
+            grep '^deb ' /etc/apt/sources.list | sed 's/^deb /deb-src /' >> /etc/apt/sources.list
+          fi
+          apt-get update -qq
+      - name: Keys
+        run: |
+          mkdir -p keys /tmp/silex-keys
+          echo "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
+          echo "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
+          chmod 600 /tmp/silex-keys/silex-packages.rsa
+          cp /tmp/silex-keys/silex-packages.rsa.pub keys/
+        env:
+          SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
+          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
+      - uses: actions/download-artifact@v5
+        with:
+          name: lists-x86_64
+          path: .
+      - name: Download L0 packages
+        uses: actions/download-artifact@v5
+        with:
+          name: recompiled-x86-L0
+          path: x86_64/
+      - run: chmod +x scripts/*.sh
+      - name: Compile apk-tar
+        run: cc -O2 -o /tmp/silex-apk-tar scripts/apk-tar.c
+      - name: Recompile layer 1
+        run: scripts/recompile-layer.sh 1
+        env:
+          ARCH:    x86_64
+          PRIVKEY: /tmp/silex-keys/silex-packages.rsa
+          PUBKEY:  /tmp/silex-keys/silex-packages.rsa.pub
+      - uses: actions/upload-artifact@v5
+        with:
+          name: recompiled-x86-L1
           path: x86_64/*.apk
           if-no-files-found: ignore
 
   merge-x86:
     name: Merge & index (x86_64)
-    needs: [repack-x86, recompile-x86]
+    needs: [repack-x86, recompile-x86-L1]
     runs-on: ubuntu-latest
     container:
       image: debian:bookworm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install deps
         run: |
           apt-get update -qq
@@ -197,15 +270,20 @@ jobs:
           SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
           SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
       - name: Download repacked
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           pattern: repack-x86-*
           path: x86_64/
           merge-multiple: true
-      - name: Download recompiled
-        uses: actions/download-artifact@v4
+      - name: Download recompiled L0
+        uses: actions/download-artifact@v5
         with:
-          name: recompiled-x86
+          name: recompiled-x86-L0
+          path: x86_64/
+      - name: Download recompiled L1
+        uses: actions/download-artifact@v5
+        with:
+          name: recompiled-x86-L1
           path: x86_64/
       - run: chmod +x scripts/*.sh
       - name: Index
@@ -217,7 +295,7 @@ jobs:
           PUBKEY:   /tmp/silex-keys/silex-packages.rsa.pub
       - name: Verify
         run: scripts/verify.sh x86_64
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: packages-x86_64
           path: x86_64/
@@ -230,7 +308,7 @@ jobs:
     container:
       image: debian:bookworm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install deps
         run: |
           apt-get update -qq
@@ -255,14 +333,18 @@ jobs:
         run: |
           sed -i 's/-march=x86-64-v3/-march=armv8.2-a+crypto/' config/cflags.conf
           sed -i 's/-fomit-frame-pointer/-fomit-frame-pointer -fno-integrated-as/' config/cflags.conf
+      - name: Generate recompile layers
+        run: scripts/gen-layers.sh
       - name: Prep
         run: scripts/prep.sh
         env:
           ARCH: aarch64
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: lists-aarch64
-          path: lists/
+          path: |
+            lists/
+            config/recompile-layers.conf
 
   repack-arm:
     name: Repack arm (${{ matrix.chunk }})
@@ -275,7 +357,7 @@ jobs:
       matrix:
         chunk: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install deps
         run: |
           apt-get update -qq
@@ -309,10 +391,10 @@ jobs:
         env:
           SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
           SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: lists-aarch64
-          path: lists/
+          path: .
       - run: chmod +x scripts/*.sh
       - name: Repack
         run: scripts/repack-chunk.sh ${{ matrix.chunk }} 12
@@ -320,20 +402,20 @@ jobs:
           ARCH:    aarch64
           PRIVKEY: /tmp/silex-keys/silex-packages.rsa
           PUBKEY:  /tmp/silex-keys/silex-packages.rsa.pub
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: repack-arm-${{ matrix.chunk }}
           path: aarch64/*.apk
           if-no-files-found: ignore
 
-  recompile-arm:
-    name: Recompile (aarch64)
+  recompile-arm-L0:
+    name: Recompile arm L0
     needs: prep-arm
     runs-on: ubuntu-24.04-arm
     container:
       image: debian:bookworm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install deps
         run: |
           apt-get update -qq
@@ -370,31 +452,101 @@ jobs:
         env:
           SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
           SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: lists-aarch64
-          path: lists/
+          path: .
       - run: chmod +x scripts/*.sh
-      - name: Recompile
-        run: scripts/recompile-all.sh
+      - name: Compile apk-tar
+        run: cc -O2 -o /tmp/silex-apk-tar scripts/apk-tar.c
+      - name: Recompile layer 0
+        run: scripts/recompile-layer.sh 0
         env:
           ARCH:    aarch64
           PRIVKEY: /tmp/silex-keys/silex-packages.rsa
           PUBKEY:  /tmp/silex-keys/silex-packages.rsa.pub
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
-          name: recompiled-arm
+          name: recompiled-arm-L0
+          path: aarch64/*.apk
+          if-no-files-found: ignore
+
+  recompile-arm-L1:
+    name: Recompile arm L1
+    needs: recompile-arm-L0
+    runs-on: ubuntu-24.04-arm
+    container:
+      image: debian:bookworm
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install deps
+        run: |
+          apt-get update -qq
+          apt-get install -y --no-install-recommends \
+              clang mold ninja-build cmake meson autoconf automake \
+              dpkg-dev devscripts fakeroot build-essential \
+              curl ca-certificates git file openssl \
+              libzstd-dev libssl-dev zlib1g-dev pkg-config
+      - name: Fix apt
+        run: |
+          echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/99sandbox
+          mkdir -p /var/lib/apt/lists/partial
+          chown -R _apt:root /var/lib/apt/lists 2>/dev/null || true
+          chmod 755 /var/lib/apt/lists
+      - name: Enable deb-src
+        run: |
+          if [ -f /etc/apt/sources.list.d/debian.sources ]; then
+            sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/debian.sources
+          elif [ -f /etc/apt/sources.list ]; then
+            grep '^deb ' /etc/apt/sources.list | sed 's/^deb /deb-src /' >> /etc/apt/sources.list
+          fi
+          apt-get update -qq
+      - name: Override march
+        run: |
+          sed -i 's/-march=x86-64-v3/-march=armv8.2-a+crypto/' config/cflags.conf
+          sed -i 's/-fomit-frame-pointer/-fomit-frame-pointer -fno-integrated-as/' config/cflags.conf
+      - name: Keys
+        run: |
+          mkdir -p keys /tmp/silex-keys
+          echo "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
+          echo "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
+          chmod 600 /tmp/silex-keys/silex-packages.rsa
+          cp /tmp/silex-keys/silex-packages.rsa.pub keys/
+        env:
+          SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
+          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
+      - uses: actions/download-artifact@v5
+        with:
+          name: lists-aarch64
+          path: .
+      - name: Download L0 packages
+        uses: actions/download-artifact@v5
+        with:
+          name: recompiled-arm-L0
+          path: aarch64/
+      - run: chmod +x scripts/*.sh
+      - name: Compile apk-tar
+        run: cc -O2 -o /tmp/silex-apk-tar scripts/apk-tar.c
+      - name: Recompile layer 1
+        run: scripts/recompile-layer.sh 1
+        env:
+          ARCH:    aarch64
+          PRIVKEY: /tmp/silex-keys/silex-packages.rsa
+          PUBKEY:  /tmp/silex-keys/silex-packages.rsa.pub
+      - uses: actions/upload-artifact@v5
+        with:
+          name: recompiled-arm-L1
           path: aarch64/*.apk
           if-no-files-found: ignore
 
   merge-arm:
     name: Merge & index (aarch64)
-    needs: [repack-arm, recompile-arm]
+    needs: [repack-arm, recompile-arm-L1]
     runs-on: ubuntu-24.04-arm
     container:
       image: debian:bookworm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install deps
         run: |
           apt-get update -qq
@@ -420,15 +572,20 @@ jobs:
           SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
           SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
       - name: Download repacked
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           pattern: repack-arm-*
           path: aarch64/
           merge-multiple: true
-      - name: Download recompiled
-        uses: actions/download-artifact@v4
+      - name: Download recompiled L0
+        uses: actions/download-artifact@v5
         with:
-          name: recompiled-arm
+          name: recompiled-arm-L0
+          path: aarch64/
+      - name: Download recompiled L1
+        uses: actions/download-artifact@v5
+        with:
+          name: recompiled-arm-L1
           path: aarch64/
       - run: chmod +x scripts/*.sh
       - name: Index
@@ -440,7 +597,7 @@ jobs:
           PUBKEY:   /tmp/silex-keys/silex-packages.rsa.pub
       - name: Verify
         run: scripts/verify.sh aarch64
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: packages-aarch64
           path: aarch64/
@@ -452,8 +609,8 @@ jobs:
     needs: merge-x86
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
         with:
           name: packages-x86_64
           path: x86_64/
@@ -499,12 +656,12 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
         with:
           name: packages-x86_64
           path: x86_64/
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: packages-aarch64
           path: aarch64/
