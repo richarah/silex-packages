@@ -13,7 +13,7 @@ mkdir -p "$REPO_DIR"
 
 for apk in "$REPO_DIR"/*.apk; do
     [ -f "$apk" ] || continue
-    tar xzf "$apk" -C / 2>/dev/null || true
+    apk add --allow-untrusted "$apk" 2>/dev/null || true
 done
 
 grep "^${LAYER} " "$CONF" | awk '{print $2}' | while read -r pkg; do
