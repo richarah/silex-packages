@@ -1,19 +1,10 @@
 # Packages to exclude from the dependency closure.
-# These are Debian-specific metadata with no value to users.
-# Excluding them keeps the closure small and prevents unpredictable bloat.
+# Only includes packages that would genuinely cause issues if included.
 #
-# Criterion for inclusion: Package is useless to end users AND safe to exclude.
-# Examples: Debian package metadata, system initialization files
-# Non-examples: Core utilities, libraries, build tools (add to required-repo.list instead)
+# Criterion: Package could break Alpine, cause confusion, or is completely
+# unusable (like games, bloated UIs, Debian-specific init systems).
 #
 # One Debian package name per line. Lines starting with # are ignored.
 
-# Debian-specific metadata (no user value)
-base-files                  # Debian system file metadata
-base-passwd                 # Debian users/groups metadata
-debianutils                 # Debian-specific utilities (not useful in Alpine-based image)
-perl-base                   # Perl core metadata
-
-# Init system metadata (Alpine doesn't use systemd)
-init-system-helpers         # Systemd/sysvinit initialization files
-sysvinit-utils              # SysVinit initialization (Alpine uses Alpine init)
+# Init system metadata (Alpine uses OpenRC, not systemd/sysvinit)
+init-system-helpers         # Systemd/sysvinit integration (conflicts with Alpine init)

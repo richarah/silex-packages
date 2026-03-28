@@ -68,3 +68,12 @@ pkg-config
 m4
 flex
 make-guile
+
+# Debian system files (safe to include, just metadata)
+base-files
+base-passwd
+debianutils
+perl-base
+
+# System initialization (SysVinit - Alpine doesn't use, but safe)
+sysvinit-utils
