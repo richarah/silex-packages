@@ -158,3 +158,4 @@ Jobs:
 
 apk-tools (static binary v2.14.4) is downloaded from the GitLab packages API
 at build time since it is not available in Debian bookworm.
+# Force rebuild Sat Mar 28 14:17:27 CET 2026
