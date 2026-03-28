@@ -1,104 +1,70 @@
-# Packages that MUST be in the final APK repository.
-# These are either:
-#   1. Build-critical (toolchain, build systems)
-#   2. Runtime-critical (libc, runtime libs, auth/security)
-#   3. User-essential (core utilities, shells)
-#
-# Use this list when a package should be in the repo but was filtered by skip.list.
-# One Debian package name per line. Lines starting with # are ignored.
-
-# ============================================
-# Core utilities (user-essential)
-# ============================================
-bash                        # Shell interpreter
-coreutils                   # Basic UNIX commands (cp, mv, rm, etc)
-dash                        # POSIX shell
-findutils                   # find command
-grep                        # Text search
-sed                         # Stream editor
-gzip                        # Compression utility
-gawk                        # GNU awk
-mawk                        # AWK interpreter
-original-awk                # Traditional awk
-diffutils                   # diff, cmp utilities
-mount                       # Mount filesystem
-util-linux                  # System utilities
-hostname                    # Hostname utility
-login                       # Login utility
-passwd                      # Password utility
-
-# ============================================
-# Core libraries (runtime-essential)
-# ============================================
-libc6                       # C library
-libc-bin                    # C library utilities
-libgcc-s1                   # GCC runtime library
-libstdc++6                  # C++ runtime library
-zlib1g                      # Compression library
-libpcre2-8-0                # Regex library
-
-# ============================================
-# Security/auth libraries (critical for containers)
-# ============================================
-libpam0g                    # PAM authentication
-libpam-modules              # PAM modules
-libpam-modules-bin          # PAM utilities
-libpam-runtime              # PAM runtime
-libcap2                     # POSIX capabilities
-libcrypt1                   # Encryption library
-libacl1                     # ACL support
-libattr1                    # File attributes
-libselinux1                 # SELinux support
-libseccomp2                 # Seccomp filtering
-
-# ============================================
-# System libraries (needed by various tools)
-# ============================================
-libblkid1                   # Block device identification
-libmount1                   # Filesystem mounting
-libncursesw6                # Terminal handling
-libsmartcols1               # Column formatting
-libsystemd0                 # Systemd libraries
-libudev1                    # Device management
-libdebconfclient0           # Debian config framework
-
-# ============================================
-# Build tools (toolchain)
-# ============================================
-gcc                         # C compiler (unversioned metapackage)
-g++                         # C++ compiler (unversioned metapackage)
-make                        # Build automation
-binutils                    # GNU binary tools
-binutils-common             # Binutils common files
-binutils-x86-64-linux-gnu   # Binutils for x86-64
-
-# Build tool variants (for users who need specific versions)
-gcc-11                      # GCC 11
-gcc-12                      # GCC 12
-gcc-13                      # GCC 13
-gcc-14                      # GCC 14
-gcc-15                      # GCC 15
-gcc-x86-64-linux-gnu        # GCC for x86-64
-gcc-11-base                 # GCC 11 base
-gcc-12-base                 # GCC 12 base
-gcc-13-base                 # GCC 13 base
-gcc-14-base                 # GCC 14 base
-gcc-15-base                 # GCC 15 base
-g++-12                      # G++ 12
-g++-13                      # G++ 13
-g++-14                      # G++ 14
-g++-15                      # G++ 15
-cpp                         # C preprocessor
-libbinutils                 # Binutils library
-
-# ============================================
-# Build systems (for compiling from source)
-# ============================================
-autoconf                    # Autoconf build system
-automake                    # Automake build system
-cmake                       # CMake build system
-patch                       # Patch utility
-pkg-config                  # Package config tool
-m4                          # GNU m4 macro processor
-flex                        # Lexical analyzer
-make-guile                  # GNU make with Guile
+bash
+coreutils
+dash
+findutils
+grep
+sed
+gzip
+gawk
+mawk
+original-awk
+diffutils
+mount
+util-linux
+hostname
+login
+passwd
+libc6
+libc-bin
+libgcc-s1
+libstdc++6
+zlib1g
+libpcre2-8-0
+libpam0g
+libpam-modules
+libpam-modules-bin
+libpam-runtime
+libcap2
+libcrypt1
+libacl1
+libattr1
+libselinux1
+libseccomp2
+libblkid1
+libmount1
+libncursesw6
+libsmartcols1
+libsystemd0
+libudev1
+libdebconfclient0
+gcc
+g++
+make
+binutils
+binutils-common
+binutils-x86-64-linux-gnu
+gcc-11
+gcc-12
+gcc-13
+gcc-14
+gcc-15
+gcc-x86-64-linux-gnu
+gcc-11-base
+gcc-12-base
+gcc-13-base
+gcc-14-base
+gcc-15-base
+g++-12
+g++-13
+g++-14
+g++-15
+cpp
+libbinutils
+autoconf
+automake
+cmake
+patch
+pkg-config
+m4
+flex
+make-guile
