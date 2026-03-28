@@ -1,117 +1,89 @@
 
-# ============================================
-# Boost C++ libraries
-# Build tools
-# Build tools (additional)
-# Build tools runtime
-# Compression
-# Compression (additional)
-# Core system libraries
-# Critical runtime libraries (proactively added)
-# Crypto / TLS
-# Crypto / auth
-# Crypto/Auth
-# Database
-# Database clients
-# Debugging
-# Essential tools (runtime)
-# Extras commonly installed in Dockerfiles
-# GPU compute
-# IPC/System
-# Image processing
-# Languages
-# Lines starting with # are ignored.
-# Math
-# Math libraries
-# Networking
-# Networking (additional)
-# Node.js runtime
-# One Debian package name per line.
-# OpenSSL dependencies
-# Other common dependencies
-# PCRE dependencies
-# Perl runtime (often needed)
-# Proactively added from test failures
-# Python dependencies
-# Python runtime
-# Readline dependencies
-# Regex (legacy API compatibility)
-# Runtime dependencies from test failures
-# Runtime libraries (from test failures)
-# Runtime — commonly installed in Dockerfiles
-# SSL/TLS
-# Security/Crypto
-# System
-# System / IPC
-# System libraries
-# Terminal
-# Terminal / readline
-# Terminal/Readline
-# Text / rendering
-# The dependency resolver expands this to the full transitive closure.
-# Utilities
-# Utilities (additional)
-# Virtual package providers
-# Virtual packages (these will be satisfied by other packages)
-# XML / text processing
-# XML dependencies
-# XML/Text processing
-# binutils dependencies
-# curl dependencies
+
 # silex-packages seed list
+# One Debian package name per line.
+# The dependency resolver expands this to the full transitive closure.
+# Lines starting with # are ignored.
+# Crypto / TLS
+# Compression
+# Database clients
+# Networking
+# XML / text processing
+# Image processing
+# Terminal / readline
+# Math
+# System
+# Build tools
+# Languages
+# Utilities
+# Crypto / auth
+# Compression (additional)
+# Networking (additional)
+# Text / rendering
+# System / IPC
+# Regex (legacy API compatibility)
+# Boost C++ libraries
+# GPU compute
+# Build tools (additional)
+# Debugging
+# Utilities (additional)
+# Runtime — commonly installed in Dockerfiles
+# Extras commonly installed in Dockerfiles
+# Runtime dependencies from test failures
+# ============================================
+# Critical runtime libraries (proactively added)
+# ============================================
+# Core system libraries
+# SSL/TLS
+# Compression
+# Database clients
+# Networking
+# XML/Text processing
+# Image processing
+# Terminal/Readline
+# Math libraries
+# System libraries
+# IPC/System
+# Crypto/Auth
+# Build tools runtime
+# Python runtime
+# Node.js runtime
+# Perl runtime (often needed)
+# Other common dependencies
+# Essential tools (runtime)
+# Virtual package providers
+# Proactively added from test failures
+
 autoconf
 automake
 bash
 bison
 build-essential
 ca-certificates
-cdebconf
-clang-14
-clang-17
-clang-18
-clang-19
-clang-20
-clang-21
 cmake
-cpp
 curl
-debconf
 default-libmysqlclient-dev
 file
 flex
 g++
 gawk
 gcc
-gcc-11
-gcc-12
-gcc-13
-gcc-14
-gcc-15
 gdb
 gettext
 gfortran
-gir1.2-freedesktop-dev
-gir1.2-glib-2.0-dev
 git
 gnupg
 gperf
-gpg-from-sq
 iproute2
 iputils-ping
 jq
 less
-libacl1
 libaio-dev
 libaio1
 libarchive-dev
 libarchive13
-libatomic1
-libattr1
 libbinutils
 libblas3
-libblis4-openmp
-libblis4-pthread
-libblis4-serial
 libblkid-dev
 libblkid1
 libboost-dev
@@ -122,14 +94,12 @@ libbz2-dev
 libc-ares-dev
 libc-dev
 libc-dev-bin
-libc6
 libc6-dev
 libcairo2
 libcairo2-dev
 libcap-dev
 libcap2
 libcom-err2
-libcrypto3
 libctf-nobfd0
 libctf0
 libcurl4
@@ -156,10 +126,7 @@ libfreetype-dev
 libfreetype6
 libfribidi-dev
 libfribidi0
-libgcc-12-dev
 libgcc-s1
-libgcrypt20
-libgdbm6
 libgif-dev
 libgif7
 libglib2.0-0
@@ -168,7 +135,6 @@ libgmp-dev
 libgmp10
 libgnutls28-dev
 libgnutls30
-libgpg-error0
 libgprofng0
 libgssapi-krb5-2
 libharfbuzz-dev
@@ -181,7 +147,6 @@ libicu72
 libidn2-0
 libjansson4
 libjpeg-dev
-libjpeg-turbo8-dev
 libjpeg62-turbo
 libk5crypto3
 libkeyutils1
@@ -200,9 +165,6 @@ libmariadb-dev-compat
 libmariadb3
 libmount-dev
 libmount1
-libmpc3
-libmpdec3
-libmpfr6
 libncurses-dev
 libncurses6
 libncursesw6
@@ -215,9 +177,6 @@ libonig-dev
 libonig5
 libopenblas-dev
 libopenblas0
-libopenblas0-openmp
-libopenblas0-pthread
-libopenblas0-serial
 libp11-kit0
 libpango-1.0-0
 libpango1.0-dev
@@ -228,7 +187,6 @@ libpcre3
 libpcre3-dev
 libpcre32-3
 libpcrecpp0v5
-libpgm-5.3-0t64
 libpixman-1-0
 libpixman-1-dev
 libpng-dev
@@ -259,7 +217,6 @@ libssh2-1
 libssh2-1-dev
 libssl-dev
 libssl3
-libstdc++-12-dev
 libstdc++6
 libsystemd-dev
 libsystemd0
@@ -295,24 +252,17 @@ linux-libc-dev
 lsof
 m4
 make
-make-guile
 meson
 nasm
 nettle-dev
-nginx
 ninja-build
-node-cli-table
-node-css-loader
-node-css-selector-tokenizer
-node-read-package-json
-node-string-width
+nginx
 nodejs
 npm
 openssh-client
 openssl
 patch
 patchelf
-pcc
 perl-base
 perl-modules-5.36
 pkg-config
@@ -326,14 +276,12 @@ python3-setuptools
 python3-venv
 python3.11
 python3.11-minimal
-python3:any
 re2c
 rsync
 socat
 strace
 sudo
 swig
-tcc
 tcl
 tk
 tree
@@ -347,3 +295,150 @@ yasm
 zip
 zlib1g
 zlib1g-dev
+
+
+
+
+# ============================================
+# Runtime libraries (from test failures)
+# ============================================
+# binutils dependencies
+libctf0
+libctf-nobfd0
+libgprofng0
+libjansson4
+libbinutils
+
+# curl dependencies
+libcurl4
+libnghttp2-14
+libpsl5
+librtmp1
+libssh2-1
+libidn2-0
+libunistring2
+libbrotli1
+
+# OpenSSL dependencies
+libssl3
+libcrypto3
+
+# PCRE dependencies
+libpcre3
+libpcre16-3
+libpcre32-3
+libpcrecpp0v5
+libpcre2-8-0
+
+# Python dependencies
+libpython3.11
+libpython3.11-stdlib
+libpython3.11-minimal
+python3
+python3-minimal
+python3.11
+python3.11-minimal
+libsqlite3-0
+libtirpc3
+libuuid1
+libnsl2
+libdb5.3
+libgdbm6
+libmpdec3
+libexpat1
+libzstd1
+
+# Readline dependencies
+libreadline8
+libtinfo6
+libncurses6
+libncursesw6
+libedit2
+
+# XML dependencies
+libxml2
+libxslt1.1
+liblzma5
+libgcrypt20
+libgpg-error0
+
+# System libraries
+libc6
+libc-dev
+libc6-dev
+libc-dev-bin
+linux-libc-dev
+libgcc-s1
+libstdc++6
+libatomic1
+libacl1
+libattr1
+libcap2
+libseccomp2
+libsystemd0
+libudev1
+
+# Compression
+zlib1g
+libbz2-1.0
+liblz4-1
+liblzma5
+libzstd1
+libbrotli1
+
+# Networking
+libnghttp2-14
+libpsl5
+librtmp1
+libssh2-1
+libidn2-0
+libunistring2
+
+# Database
+libpq5
+libsqlite3-0
+libmariadb3
+
+# Image processing
+libjpeg62-turbo
+libpng16-16
+libtiff6
+libwebp7
+libgif7
+
+# Terminal
+libncurses6
+libncursesw6
+libtinfo6
+libreadline8
+libedit2
+
+# Math
+libgmp10
+libmpfr6
+libmpc3
+libopenblas0
+
+# Security/Crypto
+libgnutls30
+libnettle8
+libhogweed6
+libgmp10
+libp11-kit0
+libtasn1-6
+libkrb5-3
+libgssapi-krb5-2
+libldap-2.5-0
+libsasl2-2
+
+# Build tools runtime
+make
+gcc
+g++
+cpp
+libgcc-12-dev
+libstdc++-12-dev
+
+# Virtual packages (these will be satisfied by other packages)
+libc-dev
+python3:any
