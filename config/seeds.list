@@ -256,6 +256,7 @@ meson
 nasm
 nettle-dev
 ninja-build
+nginx
 nodejs
 npm
 openssh-client
