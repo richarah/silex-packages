@@ -829,3 +829,22 @@ libncursesw6
 libreadline8
 libsqlite3-0
 libxml2
+# Missing development packages causing CI failures
+bison
+flex
+gfortran
+libbz2-dev
+libffi-dev
+libncurses-dev
+libpng-dev
+libpcre3-dev
+libreadline-dev
+libtiff-dev
+libtbb-dev
+libssl-dev
+pkg-config
+python3-dev
+curl
+nginx
+nodejs
+npm
