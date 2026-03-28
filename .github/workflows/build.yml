@@ -6,140 +6,48 @@ on:
       - 'config/**'
       - 'scripts/**'
       - '.github/workflows/**'
+      - 'Makefile'
   schedule:
     - cron: '0 4 * * 1'
   workflow_dispatch:
 
-# ── reusable fragments ────────────────────────────────────
-# (YAML anchors don't work in GHA, so we repeat the blocks)
-
 jobs:
-  # ── x86_64 ──────────────────────────────────────────────
-
-  prep-x86:
-    name: Prep (x86_64)
+  build:
+    name: Build (x86_64 + aarch64)
     runs-on: [self-hosted, linux]
     container:
       image: debian:bookworm
     steps:
       - uses: actions/checkout@v5
-      - name: Install deps
-        run: |
-          apt-get update -qq
-          apt-get install -y --no-install-recommends \
-              dpkg-dev build-essential curl ca-certificates pkg-config
-      - name: Fix apt
-        run: |
-          echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/99sandbox
-          mkdir -p /var/lib/apt/lists/partial
-          chown -R _apt:root /var/lib/apt/lists 2>/dev/null || true
-          chmod 755 /var/lib/apt/lists
-      - name: Enable deb-src
-        run: |
-          if [ -f /etc/apt/sources.list.d/debian.sources ]; then
-            sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/debian.sources
-          elif [ -f /etc/apt/sources.list ]; then
-            grep '^deb ' /etc/apt/sources.list | sed 's/^deb /deb-src /' >> /etc/apt/sources.list
-          fi
-          apt-get update -qq
-      - run: chmod +x scripts/*.sh
-      - name: Generate recompile layers
-        run: scripts/gen-layers.sh
-      - name: Prep
-        run: scripts/prep.sh
-        env:
-          ARCH: x86_64
-      - uses: actions/upload-artifact@v5
-        with:
-          name: lists-x86_64
-          path: |
-            lists/
-            config/recompile-layers.conf
 
-  repack-x86:
-    name: Repack x86 (${{ matrix.chunk }})
-    needs: prep-x86
-    runs-on: [self-hosted, linux]
-    container:
-      image: debian:bookworm
-    strategy:
-      fail-fast: false
-      matrix:
-        chunk: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-    steps:
-      - uses: actions/checkout@v5
-      - name: Install deps
-        run: |
-          apt-get update -qq
-          apt-get install -y --no-install-recommends \
-              dpkg-dev build-essential curl ca-certificates openssl pkg-config
-      - name: Fix apt
-        run: |
-          echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/99sandbox
-          mkdir -p /var/lib/apt/lists/partial
-          chown -R _apt:root /var/lib/apt/lists 2>/dev/null || true
-          chmod 755 /var/lib/apt/lists
-      - name: Enable deb-src
-        run: |
-          if [ -f /etc/apt/sources.list.d/debian.sources ]; then
-            sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/debian.sources
-          elif [ -f /etc/apt/sources.list ]; then
-            grep '^deb ' /etc/apt/sources.list | sed 's/^deb /deb-src /' >> /etc/apt/sources.list
-          fi
-          apt-get update -qq
-      - name: Keys
-        run: |
-          mkdir -p keys /tmp/silex-keys /etc/apk/keys
-          echo "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
-          echo "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
-          chmod 600 /tmp/silex-keys/silex-packages.rsa
-          # Get key fingerprint and copy with proper name for apk
-          KEYID=$(openssl rsa -in /tmp/silex-keys/silex-packages.rsa -pubout 2>/dev/null | \
-                  openssl dgst -sha1 | sed 's/^.* //' | tail -c 9)
-          cp /tmp/silex-keys/silex-packages.rsa.pub "/etc/apk/keys/-${KEYID}.rsa.pub"
-          cp /tmp/silex-keys/silex-packages.rsa.pub "keys/-${KEYID}.rsa.pub"
-        env:
-          SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
-          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
-      - uses: actions/download-artifact@v5
-        with:
-          name: lists-x86_64
-          path: .
-      - run: chmod +x scripts/*.sh
-      - name: Repack
-        run: scripts/repack-chunk.sh ${{ matrix.chunk }} 12
-        env:
-          ARCH:    x86_64
-          PRIVKEY: /tmp/silex-keys/silex-packages.rsa
-          PUBKEY:  /tmp/silex-keys/silex-packages.rsa.pub
-      - uses: actions/upload-artifact@v5
-        with:
-          name: repack-x86-${{ matrix.chunk }}
-          path: x86_64/*.apk
-          if-no-files-found: ignore
-
-  recompile-x86-L0:
-    name: Recompile x86 L0
-    needs: prep-x86
-    runs-on: [self-hosted, linux]
-    container:
-      image: debian:bookworm
-    steps:
-      - uses: actions/checkout@v5
-      - name: Install deps
+      - name: Install build dependencies
         run: |
           apt-get update -qq
           apt-get install -y --no-install-recommends \
               clang mold ninja-build cmake meson autoconf automake \
               dpkg-dev devscripts fakeroot build-essential \
               curl ca-certificates git file openssl \
-              libzstd-dev libssl-dev zlib1g-dev pkg-config
-      - name: Fix apt
+              libzstd-dev libssl-dev zlib1g-dev pkg-config \
+              qemu-user-static
+
+      - name: Install apk-tools
+        run: |
+          curl -fsSL \
+              "https://gitlab.alpinelinux.org/api/v4/projects/5/packages/generic//v2.14.4/x86_64/apk.static" \
+              -o /usr/local/bin/apk
+          chmod +x /usr/local/bin/apk
+
+      - name: Install abuild
+        run: |
+          apt-get install -y --no-install-recommends abuild
+
+      - name: Fix apt sandbox
         run: |
           echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/99sandbox
           mkdir -p /var/lib/apt/lists/partial
           chown -R _apt:root /var/lib/apt/lists 2>/dev/null || true
           chmod 755 /var/lib/apt/lists
+
       - name: Enable deb-src
         run: |
           if [ -f /etc/apt/sources.list.d/debian.sources ]; then
@@ -148,601 +56,42 @@ jobs:
             grep '^deb ' /etc/apt/sources.list | sed 's/^deb /deb-src /' >> /etc/apt/sources.list
           fi
           apt-get update -qq
-      - name: Keys
-        run: |
-          mkdir -p keys /tmp/silex-keys /etc/apk/keys
-          echo "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
-          echo "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
-          chmod 600 /tmp/silex-keys/silex-packages.rsa
-          # Get key fingerprint and copy with proper name for apk
-          KEYID=$(openssl rsa -in /tmp/silex-keys/silex-packages.rsa -pubout 2>/dev/null | \
-                  openssl dgst -sha1 | sed 's/^.* //' | tail -c 9)
-          cp /tmp/silex-keys/silex-packages.rsa.pub "/etc/apk/keys/-${KEYID}.rsa.pub"
-          cp /tmp/silex-keys/silex-packages.rsa.pub "keys/-${KEYID}.rsa.pub"
-        env:
-          SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
-          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
-      - uses: actions/download-artifact@v5
-        with:
-          name: lists-x86_64
-          path: .
-      - run: chmod +x scripts/*.sh
-      - name: Compile apk-tar
-        run: cc -O2 -o /tmp/silex-apk-tar scripts/apk-tar.c
-      - name: Recompile layer 0
-        run: scripts/recompile-layer.sh 0
-        env:
-          ARCH:    x86_64
-          PRIVKEY: /tmp/silex-keys/silex-packages.rsa
-          PUBKEY:  /tmp/silex-keys/silex-packages.rsa.pub
-      - uses: actions/upload-artifact@v5
-        with:
-          name: recompiled-x86-L0
-          path: x86_64/*.apk
-          if-no-files-found: ignore
 
-  recompile-x86-L1:
-    name: Recompile x86 L1
-    needs: recompile-x86-L0
-    runs-on: [self-hosted, linux]
-    container:
-      image: debian:bookworm
-    steps:
-      - uses: actions/checkout@v5
-      - name: Install deps
-        run: |
-          apt-get update -qq
-          apt-get install -y --no-install-recommends \
-              clang mold ninja-build cmake meson autoconf automake \
-              dpkg-dev devscripts fakeroot build-essential \
-              curl ca-certificates git file openssl \
-              libzstd-dev libssl-dev zlib1g-dev pkg-config
-      - name: Fix apt
-        run: |
-          echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/99sandbox
-          mkdir -p /var/lib/apt/lists/partial
-          chown -R _apt:root /var/lib/apt/lists 2>/dev/null || true
-          chmod 755 /var/lib/apt/lists
-      - name: Enable deb-src
-        run: |
-          if [ -f /etc/apt/sources.list.d/debian.sources ]; then
-            sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/debian.sources
-          elif [ -f /etc/apt/sources.list ]; then
-            grep '^deb ' /etc/apt/sources.list | sed 's/^deb /deb-src /' >> /etc/apt/sources.list
-          fi
-          apt-get update -qq
-      - name: Keys
-        run: |
-          mkdir -p keys /tmp/silex-keys /etc/apk/keys
-          echo "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
-          echo "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
-          chmod 600 /tmp/silex-keys/silex-packages.rsa
-          # Get key fingerprint and copy with proper name for apk
-          KEYID=$(openssl rsa -in /tmp/silex-keys/silex-packages.rsa -pubout 2>/dev/null | \
-                  openssl dgst -sha1 | sed 's/^.* //' | tail -c 9)
-          cp /tmp/silex-keys/silex-packages.rsa.pub "/etc/apk/keys/-${KEYID}.rsa.pub"
-          cp /tmp/silex-keys/silex-packages.rsa.pub "keys/-${KEYID}.rsa.pub"
-        env:
-          SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
-          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
-      - uses: actions/download-artifact@v5
-        with:
-          name: lists-x86_64
-          path: .
-      - name: Download L0 packages
-        uses: actions/download-artifact@v5
-        with:
-          name: recompiled-x86-L0
-          path: x86_64/
-      - run: chmod +x scripts/*.sh
-      - name: Compile apk-tar
-        run: cc -O2 -o /tmp/silex-apk-tar scripts/apk-tar.c
-      - name: Recompile layer 1
-        run: scripts/recompile-layer.sh 1
-        env:
-          ARCH:    x86_64
-          PRIVKEY: /tmp/silex-keys/silex-packages.rsa
-          PUBKEY:  /tmp/silex-keys/silex-packages.rsa.pub
-      - uses: actions/upload-artifact@v5
-        with:
-          name: recompiled-x86-L1
-          path: x86_64/*.apk
-          if-no-files-found: ignore
-
-  merge-x86:
-    name: Merge & index (x86_64)
-    needs: [repack-x86, recompile-x86-L1]
-    runs-on: [self-hosted, linux]
-    container:
-      image: alpine:3.23
-    steps:
-      - uses: actions/checkout@v5
-      - name: Install deps
-        run: apk add --no-cache openssl abuild
-
-      - name: Keys
-        run: |
-          mkdir -p keys /tmp/silex-keys /etc/apk/keys
-          echo "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
-          echo "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
-          chmod 600 /tmp/silex-keys/silex-packages.rsa
-          cp /tmp/silex-keys/silex-packages.rsa.pub keys/
-          cp /tmp/silex-keys/silex-packages.rsa.pub /etc/apk/keys/
-        env:
-          SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
-          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
-      - name: Download repacked
-        uses: actions/download-artifact@v5
-        with:
-          pattern: repack-x86-*
-          path: x86_64/
-          merge-multiple: true
-      - name: Download recompiled L0
-        uses: actions/download-artifact@v5
-        with:
-          name: recompiled-x86-L0
-          path: x86_64/
-      - name: Download recompiled L1
-        uses: actions/download-artifact@v5
-        with:
-          name: recompiled-x86-L1
-          path: x86_64/
-      - run: chmod +x scripts/*.sh
-      - name: Index
-        run: scripts/index.sh
-        env:
-          ARCH:     x86_64
-          REPO_DIR: x86_64
-          PRIVKEY:  /tmp/silex-keys/silex-packages.rsa
-          PUBKEY:   /tmp/silex-keys/silex-packages.rsa.pub
-      - name: Verify
-        run: scripts/verify.sh x86_64
-      - uses: actions/upload-artifact@v5
-        with:
-          name: packages-x86_64
-          path: x86_64/
-
-  # ── aarch64 ─────────────────────────────────────────────
-
-  prep-arm:
-    name: Prep (aarch64)
-    runs-on: ubuntu-24.04-arm
-    container:
-      image: debian:bookworm
-    steps:
-      - uses: actions/checkout@v5
-      - name: Install deps
-        run: |
-          apt-get update -qq
-          apt-get install -y --no-install-recommends \
-              dpkg-dev build-essential curl ca-certificates pkg-config
-      - name: Fix apt
-        run: |
-          echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/99sandbox
-          mkdir -p /var/lib/apt/lists/partial
-          chown -R _apt:root /var/lib/apt/lists 2>/dev/null || true
-          chmod 755 /var/lib/apt/lists
-      - name: Enable deb-src
-        run: |
-          if [ -f /etc/apt/sources.list.d/debian.sources ]; then
-            sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/debian.sources
-          elif [ -f /etc/apt/sources.list ]; then
-            grep '^deb ' /etc/apt/sources.list | sed 's/^deb /deb-src /' >> /etc/apt/sources.list
-          fi
-          apt-get update -qq
-      - run: chmod +x scripts/*.sh
-      - name: Override march
-        run: |
-          sed -i 's/-march=x86-64-v3/-march=armv8.2-a+crypto/' config/cflags.conf
-          sed -i 's/-fomit-frame-pointer/-fomit-frame-pointer -fno-integrated-as/' config/cflags.conf
-      - name: Generate recompile layers
-        run: scripts/gen-layers.sh
-      - name: Prep
-        run: scripts/prep.sh
-        env:
-          ARCH: aarch64
-      - uses: actions/upload-artifact@v5
-        with:
-          name: lists-aarch64
-          path: |
-            lists/
-            config/recompile-layers.conf
-
-  repack-arm:
-    name: Repack arm (${{ matrix.chunk }})
-    needs: prep-arm
-    runs-on: ubuntu-24.04-arm
-    container:
-      image: debian:bookworm
-    strategy:
-      fail-fast: false
-      matrix:
-        chunk: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-    steps:
-      - uses: actions/checkout@v5
-      - name: Install deps
-        run: |
-          apt-get update -qq
-          apt-get install -y --no-install-recommends \
-              dpkg-dev build-essential curl ca-certificates openssl pkg-config
-      - name: Fix apt
-        run: |
-          echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/99sandbox
-          mkdir -p /var/lib/apt/lists/partial
-          chown -R _apt:root /var/lib/apt/lists 2>/dev/null || true
-          chmod 755 /var/lib/apt/lists
-      - name: Enable deb-src
-        run: |
-          if [ -f /etc/apt/sources.list.d/debian.sources ]; then
-            sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/debian.sources
-          elif [ -f /etc/apt/sources.list ]; then
-            grep '^deb ' /etc/apt/sources.list | sed 's/^deb /deb-src /' >> /etc/apt/sources.list
-          fi
-          apt-get update -qq
-      - name: Override march
-        run: |
-          sed -i 's/-march=x86-64-v3/-march=armv8.2-a+crypto/' config/cflags.conf
-          sed -i 's/-fomit-frame-pointer/-fomit-frame-pointer -fno-integrated-as/' config/cflags.conf
-      - name: Keys
-        run: |
-          mkdir -p keys /tmp/silex-keys /etc/apk/keys
-          echo "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
-          echo "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
-          chmod 600 /tmp/silex-keys/silex-packages.rsa
-          # Get key fingerprint and copy with proper name for apk
-          KEYID=$(openssl rsa -in /tmp/silex-keys/silex-packages.rsa -pubout 2>/dev/null | \
-                  openssl dgst -sha1 | sed 's/^.* //' | tail -c 9)
-          cp /tmp/silex-keys/silex-packages.rsa.pub "/etc/apk/keys/-${KEYID}.rsa.pub"
-          cp /tmp/silex-keys/silex-packages.rsa.pub "keys/-${KEYID}.rsa.pub"
-        env:
-          SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
-          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
-      - uses: actions/download-artifact@v5
-        with:
-          name: lists-aarch64
-          path: .
-      - run: chmod +x scripts/*.sh
-      - name: Repack
-        run: scripts/repack-chunk.sh ${{ matrix.chunk }} 12
-        env:
-          ARCH:    aarch64
-          PRIVKEY: /tmp/silex-keys/silex-packages.rsa
-          PUBKEY:  /tmp/silex-keys/silex-packages.rsa.pub
-      - uses: actions/upload-artifact@v5
-        with:
-          name: repack-arm-${{ matrix.chunk }}
-          path: aarch64/*.apk
-          if-no-files-found: ignore
-
-  recompile-arm-L0:
-    name: Recompile arm L0
-    needs: prep-arm
-    runs-on: ubuntu-24.04-arm
-    container:
-      image: debian:bookworm
-    steps:
-      - uses: actions/checkout@v5
-      - name: Install deps
-        run: |
-          apt-get update -qq
-          apt-get install -y --no-install-recommends \
-              clang mold ninja-build cmake meson autoconf automake \
-              dpkg-dev devscripts fakeroot build-essential \
-              curl ca-certificates git file openssl \
-              libzstd-dev libssl-dev zlib1g-dev pkg-config
-      - name: Fix apt
-        run: |
-          echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/99sandbox
-          mkdir -p /var/lib/apt/lists/partial
-          chown -R _apt:root /var/lib/apt/lists 2>/dev/null || true
-          chmod 755 /var/lib/apt/lists
-      - name: Enable deb-src
-        run: |
-          if [ -f /etc/apt/sources.list.d/debian.sources ]; then
-            sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/debian.sources
-          elif [ -f /etc/apt/sources.list ]; then
-            grep '^deb ' /etc/apt/sources.list | sed 's/^deb /deb-src /' >> /etc/apt/sources.list
-          fi
-          apt-get update -qq
-      - name: Override march
-        run: |
-          sed -i 's/-march=x86-64-v3/-march=armv8.2-a+crypto/' config/cflags.conf
-          sed -i 's/-fomit-frame-pointer/-fomit-frame-pointer -fno-integrated-as/' config/cflags.conf
-      - name: Keys
-        run: |
-          mkdir -p keys /tmp/silex-keys /etc/apk/keys
-          echo "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
-          echo "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
-          chmod 600 /tmp/silex-keys/silex-packages.rsa
-          # Get key fingerprint and copy with proper name for apk
-          KEYID=$(openssl rsa -in /tmp/silex-keys/silex-packages.rsa -pubout 2>/dev/null | \
-                  openssl dgst -sha1 | sed 's/^.* //' | tail -c 9)
-          cp /tmp/silex-keys/silex-packages.rsa.pub "/etc/apk/keys/-${KEYID}.rsa.pub"
-          cp /tmp/silex-keys/silex-packages.rsa.pub "keys/-${KEYID}.rsa.pub"
-        env:
-          SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
-          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
-      - uses: actions/download-artifact@v5
-        with:
-          name: lists-aarch64
-          path: .
-      - run: chmod +x scripts/*.sh
-      - name: Compile apk-tar
-        run: cc -O2 -o /tmp/silex-apk-tar scripts/apk-tar.c
-      - name: Recompile layer 0
-        run: scripts/recompile-layer.sh 0
-        env:
-          ARCH:    aarch64
-          PRIVKEY: /tmp/silex-keys/silex-packages.rsa
-          PUBKEY:  /tmp/silex-keys/silex-packages.rsa.pub
-      - uses: actions/upload-artifact@v5
-        with:
-          name: recompiled-arm-L0
-          path: aarch64/*.apk
-          if-no-files-found: ignore
-
-  recompile-arm-L1:
-    name: Recompile arm L1
-    needs: recompile-arm-L0
-    runs-on: ubuntu-24.04-arm
-    container:
-      image: debian:bookworm
-    steps:
-      - uses: actions/checkout@v5
-      - name: Install deps
-        run: |
-          apt-get update -qq
-          apt-get install -y --no-install-recommends \
-              clang mold ninja-build cmake meson autoconf automake \
-              dpkg-dev devscripts fakeroot build-essential \
-              curl ca-certificates git file openssl \
-              libzstd-dev libssl-dev zlib1g-dev pkg-config
-      - name: Fix apt
-        run: |
-          echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/99sandbox
-          mkdir -p /var/lib/apt/lists/partial
-          chown -R _apt:root /var/lib/apt/lists 2>/dev/null || true
-          chmod 755 /var/lib/apt/lists
-      - name: Enable deb-src
-        run: |
-          if [ -f /etc/apt/sources.list.d/debian.sources ]; then
-            sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/debian.sources
-          elif [ -f /etc/apt/sources.list ]; then
-            grep '^deb ' /etc/apt/sources.list | sed 's/^deb /deb-src /' >> /etc/apt/sources.list
-          fi
-          apt-get update -qq
-      - name: Override march
-        run: |
-          sed -i 's/-march=x86-64-v3/-march=armv8.2-a+crypto/' config/cflags.conf
-          sed -i 's/-fomit-frame-pointer/-fomit-frame-pointer -fno-integrated-as/' config/cflags.conf
-      - name: Keys
-        run: |
-          mkdir -p keys /tmp/silex-keys /etc/apk/keys
-          echo "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
-          echo "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
-          chmod 600 /tmp/silex-keys/silex-packages.rsa
-          # Get key fingerprint and copy with proper name for apk
-          KEYID=$(openssl rsa -in /tmp/silex-keys/silex-packages.rsa -pubout 2>/dev/null | \
-                  openssl dgst -sha1 | sed 's/^.* //' | tail -c 9)
-          cp /tmp/silex-keys/silex-packages.rsa.pub "/etc/apk/keys/-${KEYID}.rsa.pub"
-          cp /tmp/silex-keys/silex-packages.rsa.pub "keys/-${KEYID}.rsa.pub"
-        env:
-          SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
-          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
-      - uses: actions/download-artifact@v5
-        with:
-          name: lists-aarch64
-          path: .
-      - name: Download L0 packages
-        uses: actions/download-artifact@v5
-        with:
-          name: recompiled-arm-L0
-          path: aarch64/
-      - run: chmod +x scripts/*.sh
-      - name: Compile apk-tar
-        run: cc -O2 -o /tmp/silex-apk-tar scripts/apk-tar.c
-      - name: Recompile layer 1
-        run: scripts/recompile-layer.sh 1
-        env:
-          ARCH:    aarch64
-          PRIVKEY: /tmp/silex-keys/silex-packages.rsa
-          PUBKEY:  /tmp/silex-keys/silex-packages.rsa.pub
-      - uses: actions/upload-artifact@v5
-        with:
-          name: recompiled-arm-L1
-          path: aarch64/*.apk
-          if-no-files-found: ignore
-
-  merge-arm:
-    name: Merge & index (aarch64)
-    needs: [repack-arm, recompile-arm-L1]
-    runs-on: ubuntu-24.04-arm
-    steps:
-      - uses: actions/checkout@v5
-      - name: Install deps
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends openssl
-          # Install apk-tools-static for apk index and signing
-          curl -fsSL https://dl-cdn.alpinelinux.org/alpine/v3.23/main/aarch64/apk-tools-static-3.0.5-r0.apk -o /tmp/apk.apk
-          cd /tmp && sudo tar -xzf apk.apk
-          sudo cp sbin/apk.static /usr/local/bin/apk
-          sudo chmod +x /usr/local/bin/apk
-          sudo apt-get install -y --no-install-recommends \
-            patch git openssh-client rsync gawk meson cmake \
-            build-essential pkgconf flex bison gperf
-          rm /tmp/apk.apk
-      - name: Keys
-        run: |
-          mkdir -p keys /tmp/silex-keys
-          echo "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
-          echo "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
-          chmod 600 /tmp/silex-keys/silex-packages.rsa
-          # Get key fingerprint and copy with proper name for apk
-          KEYID=$(openssl rsa -in /tmp/silex-keys/silex-packages.rsa -pubout 2>/dev/null | \
-                  openssl dgst -sha1 | sed 's/^.* //' | tail -c 9)
-          sudo mkdir -p /etc/apk/keys
-          sudo cp /tmp/silex-keys/silex-packages.rsa.pub "/etc/apk/keys/-${KEYID}.rsa.pub"
-          cp /tmp/silex-keys/silex-packages.rsa.pub "keys/-${KEYID}.rsa.pub"
-        env:
-          SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
-          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
-      - name: Download repacked
-        uses: actions/download-artifact@v5
-        with:
-          pattern: repack-arm-*
-          path: aarch64/
-          merge-multiple: true
-      - name: Download recompiled L0
-        uses: actions/download-artifact@v5
-        with:
-          name: recompiled-arm-L0
-          path: aarch64/
-      - name: Download recompiled L1
-        uses: actions/download-artifact@v5
-        with:
-          name: recompiled-arm-L1
-          path: aarch64/
-      - run: chmod +x scripts/*.sh
-      - name: Index
-        run: scripts/index.sh
-        env:
-          ARCH:     aarch64
-          REPO_DIR: aarch64
-          PRIVKEY:  /tmp/silex-keys/silex-packages.rsa
-          PUBKEY:   /tmp/silex-keys/silex-packages.rsa.pub
-      - name: Verify
-        run: scripts/verify.sh aarch64
-      - uses: actions/upload-artifact@v5
-        with:
-          name: packages-aarch64
-          path: aarch64/
-
-  sign-indexes:
-    name: Sign indexes
-    needs: [merge-x86, merge-arm]
-    runs-on: [self-hosted, linux]
-    container:
-      image: alpine:3.23
-    steps:
-      - uses: actions/checkout@v5
-      - name: Install deps
-        run: apk add --no-cache openssl abuild
-      - name: Keys
+      - name: Setup signing keys
         run: |
           mkdir -p /tmp/silex-keys /etc/apk/keys
           echo "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
           echo "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
           chmod 600 /tmp/silex-keys/silex-packages.rsa
           cp /tmp/silex-keys/silex-packages.rsa.pub /etc/apk/keys/
+          cp /tmp/silex-keys/silex-packages.rsa.pub keys/
         env:
           SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
           SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
-      - uses: actions/download-artifact@v5
-        with:
-          name: packages-x86_64
-          path: x86_64/
-      - uses: actions/download-artifact@v5
-        with:
-          name: packages-aarch64
-          path: aarch64/
-      - name: Sign both indexes (parallel)
-        run: |
-          for idx in x86_64/APKINDEX.tar.gz aarch64/APKINDEX.tar.gz; do
-            if [ -f "$idx" ]; then
-              PACKAGER_PRIVKEY=/tmp/silex-keys/silex-packages.rsa \
-                abuild-sign -k /tmp/silex-keys/silex-packages.rsa "$idx" &
-            else
-              printf 'sign: %s not found, skipping\n' "$idx"
-            fi
-          done
-          wait
-      - uses: actions/upload-artifact@v5
-        with:
-          name: signed-x86_64
-          path: x86_64/
-      - uses: actions/upload-artifact@v5
-        with:
-          name: signed-aarch64
-          path: aarch64/
 
-  # ── test & deploy ───────────────────────────────────────
+      - name: Make scripts executable
+        run: chmod +x scripts/*.sh
 
-  test:
-    name: Test (x86_64)
-    needs: sign-indexes
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v5
-        with:
-          name: packages-x86_64
-          path: x86_64/
-      - name: Get apk
-        run: |
-          curl -fsSL --retry 5 \
-              "https://dl-cdn.alpinelinux.org/alpine/v3.23/main/x86_64/apk-tools-static-3.0.5-r0.apk" \
-              -o /tmp/apk.apk
-          tar -xzf /tmp/apk.apk -C /tmp
-          sudo cp /tmp/sbin/apk.static /usr/local/bin/apk
-          sudo chmod +x /usr/local/bin/apk
-      - name: Test
-        run: |
-          set -e
-          R=/tmp/pkgroot
-          mkdir -p "$R/etc/apk/keys" "$R/var/cache/apk" \
-                   "$R/var/lib/apk" "$R/lib/apk/db"
-          cp keys/*.rsa.pub "$R/etc/apk/keys/"
-          printf 'file://%s\n' "$GITHUB_WORKSPACE" > "$R/etc/apk/repositories"
-          printf 'x86_64\n' > "$R/etc/apk/arch"
-          /usr/local/bin/apk --root "$R" add --initdb --usermode
-          /usr/local/bin/apk --root "$R" --allow-untrusted update
-          count=$(/usr/local/bin/apk --root "$R" --allow-untrusted list --available 2>/dev/null | wc -l || echo 0)
-          printf 'index: %d packages\n' "$count"
-          [ "$count" -gt 50 ] || { printf 'FAIL: expected >50\n'; exit 1; }
-          /usr/local/bin/apk extract --allow-untrusted --destination "$R" \
-              x86_64/zlib1g-dev-*.x86_64.apk \
-              x86_64/libffi-dev-*.x86_64.apk \
-              x86_64/bzip2-*.x86_64.apk
-          test -f "$R/usr/include/zlib.h" || { printf 'FAIL: zlib.h\n'; exit 1; }
-          test -f "$R/usr/include/ffi.h" -o -f "$R/usr/include/x86_64-linux-gnu/ffi.h"  || { printf 'FAIL: ffi.h\n';  exit 1; }
-          test -f "$R/bin/bzip2"          || { printf 'FAIL: bzip2\n';  exit 1; }
-          printf 'PASS\n'
+      - name: Build (x86_64 + aarch64)
+        run: make -j 32 build
+        env:
+          PRIVKEY: /tmp/silex-keys/silex-packages.rsa
+          PUBKEY:  /tmp/silex-keys/silex-packages.rsa.pub
 
-  deploy:
-    name: Deploy to Pages
-    needs: [sign-indexes, test]
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v5
+      - name: Upload artifacts
+        if: success()
+        uses: actions/upload-artifact@v5
         with:
-          name: signed-x86_64
-          path: x86_64/
-      - uses: actions/download-artifact@v5
-        with:
-          name: signed-aarch64
-          path: aarch64/
-      - uses: actions/jekyll-build-pages@v1
-        with:
-          source: ./
-          destination: ./_site
-      - name: Copy packages
+          name: silex-packages-apks
+          path: |
+            x86_64/
+            aarch64/
+
+      - name: Commit results
+        if: success()
         run: |
-          sudo sudo mkdir -p ./_site/x86_64 ./_site/aarch64 ./_site/keys && sudo chmod -R 777 ./_site/ && sudo chmod -R 777 ./_site/
-          cp -r x86_64/* ./_site/x86_64/
-          cp -r aarch64/* ./_site/aarch64/
-          cp -r keys/* ./_site/keys/
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./_site
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
+          git config user.email "ci@silex"
+          git config user.name "CI Bot"
+          git add x86_64/ aarch64/
+          git commit -m "build: rebuild APK repository ($(date -u +%Y-%m-%d))" || true
+          git push || true
