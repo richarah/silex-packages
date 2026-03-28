@@ -86,6 +86,8 @@ zlib1g-dev
 gcc
 g++
 libc6-dev
+binutils
+make
 gcc-11
 gcc-12
 gcc-13
