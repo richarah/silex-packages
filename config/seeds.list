@@ -61,7 +61,6 @@
 # silex-packages seed list
 autoconf
 automake
-bash
 bison
 build-essential
 ca-certificates
@@ -100,20 +99,17 @@ iproute2
 iputils-ping
 jq
 less
-libacl1
 libaio-dev
 libaio1
 libarchive-dev
 libarchive13
 libatomic1
-libattr1
 libbinutils
 libblas3
 libblis4-openmp
 libblis4-pthread
 libblis4-serial
 libblkid-dev
-libblkid1
 libboost-dev
 libbrotli-dev
 libbrotli1
@@ -122,12 +118,9 @@ libbz2-dev
 libc-ares-dev
 libc-dev
 libc-dev-bin
-libc6
-libc6-dev
 libcairo2
 libcairo2-dev
 libcap-dev
-libcap2
 libcom-err2
 libcrypto3
 libctf-nobfd0
@@ -157,7 +150,6 @@ libfreetype6
 libfribidi-dev
 libfribidi0
 libgcc-12-dev
-libgcc-s1
 libgcrypt20
 libgdbm6
 libgif-dev
@@ -198,14 +190,11 @@ liblzma5
 libmariadb-dev
 libmariadb-dev-compat
 libmariadb3
-libmount-dev
-libmount1
 libmpc3
 libmpdec3
 libmpfr6
 libncurses-dev
 libncurses6
-libncursesw6
 libnettle8
 libnghttp2-14
 libnghttp2-dev
@@ -222,7 +211,6 @@ libp11-kit0
 libpango-1.0-0
 libpango1.0-dev
 libpcre16-3
-libpcre2-8-0
 libpcre2-dev
 libpcre3
 libpcre3-dev
@@ -248,7 +236,6 @@ libsasl2-2
 libsasl2-dev
 libsasl2-modules-db
 libseccomp-dev
-libseccomp2
 libsnappy-dev
 libsnappy1v5
 libsodium-dev
@@ -260,9 +247,7 @@ libssh2-1-dev
 libssl-dev
 libssl3
 libstdc++-12-dev
-libstdc++6
 libsystemd-dev
-libsystemd0
 libtasn1-6
 libtbb-dev
 libtbb12
@@ -271,7 +256,6 @@ libtiff6
 libtinfo6
 libtirpc3
 libtool
-libudev1
 libunistring2
 libuuid1
 libuv1
@@ -313,7 +297,6 @@ openssl
 patch
 patchelf
 pcc
-perl-base
 perl-modules-5.36
 pkg-config
 procps
@@ -345,5 +328,3 @@ xxd
 xz-utils
 yasm
 zip
-zlib1g
-zlib1g-dev
