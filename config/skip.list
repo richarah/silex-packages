@@ -1,99 +1,19 @@
-# Packages to exclude from the dependency closure (CI management).
-# These are already present in silex:slim base image, so we skip them during
-# the build to avoid recompiling/repacking (faster, safer, not needed for CI).
+# Packages to exclude from the dependency closure.
+# These are Debian-specific metadata with no value to users.
+# Excluding them keeps the closure small and prevents unpredictable bloat.
 #
-# IMPORTANT: Packages here may STILL be needed in the final APK repository
-# for end users. Use config/required-repo.list to force such packages into
-# the repository despite being in skip.list.
+# Criterion for inclusion: Package is useless to end users AND safe to exclude.
+# Examples: Debian package metadata, system initialization files
+# Non-examples: Core utilities, libraries, build tools (add to required-repo.list instead)
 #
 # One Debian package name per line. Lines starting with # are ignored.
 
-# ============================================
-# Already in silex:slim base image
-# ============================================
-# Core system packages bundled with Alpine/Debian base.
-# Excluded from closure to keep build fast and predictable.
+# Debian-specific metadata (no user value)
+base-files                  # Debian system file metadata
+base-passwd                 # Debian users/groups metadata
+debianutils                 # Debian-specific utilities (not useful in Alpine-based image)
+perl-base                   # Perl core metadata
 
-# Shell / core utilities
-bash                    # Shell - needed for build scripts
-coreutils               # Basic Unix commands (cp, mv, rm, etc.)
-dash                    # POSIX shell
-diffutils               # diff/cmp
-gawk                    # GNU awk (mawk provides awk - avoid conflicts)
-grep                    # Text search - needed for build scripts
-sed                     # Stream editor - needed for build scripts
-gzip                    # Compression
-findutils               # find command
-original-awk            # Traditional awk (mawk provides sufficient awk functionality)
-
-# System management
-base-files              # Basic system files
-base-passwd             # Users/groups
-debianutils             # System utilities
-dpkg                    # Package manager
-hostname                # Hostname management
-init-system-helpers     # Init system
-login                   # User login
-mawk                    # AWK interpreter - needed for build scripts
-mount                   # Filesystem mounting
-passwd                  # User/password management
-sysvinit-utils          # System initialization
-util-linux              # Miscellaneous utilities
-
-# Core libraries (compiled into alpine base)
-libc6                   # C library - fundamental
-libc-bin                # C library utilities
-libgcc-s1               # GCC runtime
-libstdc++6              # C++ runtime
-libcap2                 # POSIX capabilities
-libcrypt1               # Encryption
-libacl1                 # ACL support
-libattr1                # File attributes
-libblkid1               # Block device identification
-libdebconfclient0       # Debian config framework
-libmount1               # Filesystem mounting
-libncursesw6            # Terminal handling
-libpam0g                # Authentication
-libpam-modules          # PAM modules
-libpam-modules-bin      # PAM utilities
-libpam-runtime          # PAM runtime
-libpcre2-8-0            # Regular expressions
-libseccomp2             # Seccomp filtering
-libselinux1             # SELinux
-libsmartcols1           # Column formatting
-libsystemd0             # Systemd libraries
-libudev1                # Device management
-perl-base               # Perl core
-zlib1g                  # Compression library
-
-# ============================================
-# Build tools - CRITICAL
-# ============================================
-# Compiler toolchain and build utilities required by recompile phase.
-# MUST NOT be repacked - the build process itself uses them.
-
-autoconf                # Autoconf macros
-automake                # Automake build system
-binutils                # GNU binary tools (ar, ld, nm, etc.)
-binutils-common         # Binutils common files
-binutils-x86-64-linux-gnu  # Binutils for x86-64
-cmake                   # CMake build system
-cpp                     # C preprocessor
-flex                    # Lexical analyzer generator
-g++                     # C++ compiler
-gcc                     # C compiler
-gcc-11-base             # GCC 11 base
-gcc-12-base             # GCC 12 base
-gcc-13-base             # GCC 13 base
-gcc-13                  # GCC 13 compiler
-gcc-14-base             # GCC 14 base
-gcc-14                  # GCC 14 compiler
-gcc-15-base             # GCC 15 base
-gcc-15                  # GCC 15 compiler
-gcc-x86-64-linux-gnu    # GCC for x86-64
-libbinutils             # Binutils library
-make                    # GNU make
-make-guile              # GNU make with Guile
-patch                   # Patch utility
-pkg-config              # Package config tool
-m4                      # GNU m4 macro processor
+# Init system metadata (Alpine doesn't use systemd)
+init-system-helpers         # Systemd/sysvinit initialization files
+sysvinit-utils              # SysVinit initialization (Alpine uses Alpine init)
