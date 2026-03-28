@@ -28,6 +28,10 @@ libxxf86vm1
 libxtables12
 libxxhash0
 libyaml-0-2
+
+# Force include packages that are missing from dependency chains
+# but required by APK metadata
+ncurses-bin
 libz3-4
 libzmq5
 libclang-cpp13

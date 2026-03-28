@@ -778,3 +778,8 @@ xz-utils
 yasm
 zip
 zlib1g-dev
+ncurses-bin
+libpcre32-3
+libpcrecpp0v5
+libjs-underscore
+libc-dev
