@@ -82,6 +82,8 @@ zlib1g-dev
 # GCC compiler toolchain - force repack instead of recompile
 # Recompiling gcc requires gcc (bootstrap problem).
 # Use Debian binary packages instead.
+gcc
+g++
 gcc-11
 gcc-12
 gcc-13
@@ -90,3 +92,7 @@ gcc-14
 gcc-14-x86-64-linux-gnu
 gcc-15
 gcc-15-x86-64-linux-gnu
+g++-12
+g++-13
+g++-14
+g++-15
