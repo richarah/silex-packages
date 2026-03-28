@@ -19,7 +19,7 @@ permissions:
 jobs:
   build:
     name: Build (x86_64 + aarch64)
-    runs-on: [self-hosted, linux]
+    runs-on: [self-hosted, Linux, X64]
     container:
       image: debian:bookworm
     steps:
@@ -91,7 +91,7 @@ jobs:
   sign-indexes:
     name: Sign APKINDEXes
     needs: build
-    runs-on: [self-hosted, linux]
+    runs-on: [self-hosted, Linux, X64]
     container:
       image: alpine:3.23
     steps:
