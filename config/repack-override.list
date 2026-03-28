@@ -79,11 +79,13 @@ tcl
 libpcre3
 zlib1g-dev
 
-# GCC compiler toolchain - force repack instead of recompile
-# Recompiling gcc requires gcc (bootstrap problem).
+# Build essentials - force repack instead of recompile
+# These are required by build-essential and other key packages.
+# Recompiling would create bootstrap problems.
 # Use Debian binary packages instead.
 gcc
 g++
+libc6-dev
 gcc-11
 gcc-12
 gcc-13
