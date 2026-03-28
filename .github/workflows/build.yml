@@ -37,10 +37,6 @@ jobs:
               -o /usr/local/bin/apk
           chmod +x /usr/local/bin/apk
 
-      - name: Install abuild
-        run: |
-          apt-get install -y --no-install-recommends abuild
-
       - name: Fix apt sandbox
         run: |
           echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/99sandbox
@@ -78,17 +74,52 @@ jobs:
           PRIVKEY: /tmp/silex-keys/silex-packages.rsa
           PUBKEY:  /tmp/silex-keys/silex-packages.rsa.pub
 
-      - name: Upload artifacts
-        if: success()
-        uses: actions/upload-artifact@v5
+  sign-indexes:
+    name: Sign APKINDEXes
+    needs: build
+    runs-on: [self-hosted, linux]
+    container:
+      image: alpine:3.23
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install signing tools
+        run: apk add --no-cache openssl abuild
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v5
         with:
           name: silex-packages-apks
+          path: .
+
+      - name: Setup signing keys
+        run: |
+          mkdir -p /tmp/silex-keys /etc/apk/keys
+          echo "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
+          echo "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
+          chmod 600 /tmp/silex-keys/silex-packages.rsa
+          cp /tmp/silex-keys/silex-packages.rsa.pub /etc/apk/keys/
+        env:
+          SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
+          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
+
+      - name: Sign APKINDEXes
+        run: |
+          for arch in x86_64 aarch64; do
+            abuild-sign -k /tmp/silex-keys/silex-packages.rsa "$arch/APKINDEX.tar.gz" &
+          done
+          wait
+          echo "✓ Signing complete"
+
+      - name: Upload signed artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          name: silex-packages-signed
           path: |
-            x86_64/
-            aarch64/
+            x86_64/APKINDEX.tar.gz*
+            aarch64/APKINDEX.tar.gz*
 
       - name: Commit results
-        if: success()
         run: |
           git config user.email "ci@silex"
           git config user.name "CI Bot"

@@ -44,7 +44,7 @@ help:
 
 # ── Main targets ────────────────────────────────────────────
 
-build: build-x86 build-arm sign-indexes
+build: build-x86 build-arm
 	@printf "\n✓ Build complete (x86_64 + aarch64)\n"
 
 build-x86: prep-x86 repack-x86 recompile-x86 merge-x86
@@ -125,20 +125,12 @@ merge-arm: recompile-arm
 	@printf "[merge] aarch64 verifying...\n"
 	@cd "$(REPO_ROOT)" && $(SCRIPTS_DIR)/verify.sh aarch64
 
-# ── Signing phase ────────────────────────────────────────────
+# ── Signing phase (requires Alpine container) ────────────────────────────────────────────
 
-sign-indexes: merge
-	@printf "[sign] Signing APKINDEXes...\n"
-	@[ -f "$(PRIVKEY)" ] || { printf "ERROR: PRIVKEY not found at $(PRIVKEY)\n" >&2; exit 1; }
-	@[ -f "$(PUBKEY)" ] || { printf "ERROR: PUBKEY not found at $(PUBKEY)\n" >&2; exit 1; }
-	@for arch in x86_64 aarch64; do \
-		( abuild-sign -k "$(PRIVKEY)" "$(REPO_ROOT)/$$arch/APKINDEX.tar.gz" ) & \
-	done; \
-	wait
-	@printf "✓ Signing complete\n"
-	@git add x86_64/APKINDEX.tar.gz* aarch64/APKINDEX.tar.gz* 2>/dev/null || true
-	@git commit -m "ci: rebuild APK repository" || true
-	@git push || true
+sign-indexes:
+	@printf "ERROR: Signing requires Alpine + abuild (run in CI or Alpine container)\n" >&2
+	@printf "For CI: Use 'make build' then GitHub Actions handles signing\n" >&2
+	@exit 1
 
 # ── Package selection ────────────────────────────────────────
 
