@@ -1,0 +1,444 @@
+
+
+# silex-packages seed list
+# One Debian package name per line.
+# The dependency resolver expands this to the full transitive closure.
+# Lines starting with # are ignored.
+# Crypto / TLS
+# Compression
+# Database clients
+# Networking
+# XML / text processing
+# Image processing
+# Terminal / readline
+# Math
+# System
+# Build tools
+# Languages
+# Utilities
+# Crypto / auth
+# Compression (additional)
+# Networking (additional)
+# Text / rendering
+# System / IPC
+# Regex (legacy API compatibility)
+# Boost C++ libraries
+# GPU compute
+# Build tools (additional)
+# Debugging
+# Utilities (additional)
+# Runtime — commonly installed in Dockerfiles
+# Extras commonly installed in Dockerfiles
+# Runtime dependencies from test failures
+# ============================================
+# Critical runtime libraries (proactively added)
+# ============================================
+# Core system libraries
+# SSL/TLS
+# Compression
+# Database clients
+# Networking
+# XML/Text processing
+# Image processing
+# Terminal/Readline
+# Math libraries
+# System libraries
+# IPC/System
+# Crypto/Auth
+# Build tools runtime
+# Python runtime
+# Node.js runtime
+# Perl runtime (often needed)
+# Other common dependencies
+# Essential tools (runtime)
+# Virtual package providers
+# Proactively added from test failures
+
+autoconf
+automake
+bash
+bison
+build-essential
+ca-certificates
+cmake
+curl
+default-libmysqlclient-dev
+file
+flex
+g++
+gawk
+gcc
+gdb
+gettext
+gfortran
+git
+gnupg
+gperf
+iproute2
+iputils-ping
+jq
+less
+libaio-dev
+libaio1
+libarchive-dev
+libarchive13
+libbinutils
+libblas3
+libblkid-dev
+libblkid1
+libboost-dev
+libbrotli-dev
+libbrotli1
+libbz2-1.0
+libbz2-dev
+libc-ares-dev
+libc-dev
+libc-dev-bin
+libc6-dev
+libcairo2
+libcairo2-dev
+libcap-dev
+libcap2
+libcom-err2
+libctf-nobfd0
+libctf0
+libcurl4
+libcurl4-openssl-dev
+libdb5.3
+libdbus-1-3
+libdbus-1-dev
+libdeflate-dev
+libdrm-dev
+libdrm2
+libedit-dev
+libedit2
+libepoxy-dev
+libepoxy0
+libevent-2.1-7
+libevent-dev
+libexpat1
+libexpat1-dev
+libffi-dev
+libffi8
+libfontconfig1
+libfontconfig1-dev
+libfreetype-dev
+libfreetype6
+libfribidi-dev
+libfribidi0
+libgcc-s1
+libgif-dev
+libgif7
+libglib2.0-0
+libglib2.0-dev
+libgmp-dev
+libgmp10
+libgnutls28-dev
+libgnutls30
+libgprofng0
+libgssapi-krb5-2
+libharfbuzz-dev
+libharfbuzz0b
+libhiredis-dev
+libhiredis1.0.0
+libhogweed6
+libicu-dev
+libicu72
+libidn2-0
+libjansson4
+libjpeg-dev
+libjpeg62-turbo
+libk5crypto3
+libkeyutils1
+libkrb5-3
+libkrb5-dev
+libkrb5support0
+liblapack3
+libldap-2.5-0
+libldap-dev
+liblz4-1
+liblz4-dev
+liblzma-dev
+liblzma5
+libmariadb-dev
+libmariadb-dev-compat
+libmariadb3
+libmount-dev
+libmount1
+libncurses-dev
+libncurses6
+libncursesw6
+libnettle8
+libnghttp2-14
+libnghttp2-dev
+libnode108
+libnsl2
+libonig-dev
+libonig5
+libopenblas-dev
+libopenblas0
+libp11-kit0
+libpango-1.0-0
+libpango1.0-dev
+libpcre16-3
+libpcre2-8-0
+libpcre2-dev
+libpcre3
+libpcre3-dev
+libpcre32-3
+libpcrecpp0v5
+libpixman-1-0
+libpixman-1-dev
+libpng-dev
+libpng16-16
+libpq-dev
+libpq5
+libprotobuf-dev
+libpsl-dev
+libpsl5
+libpython3.11
+libpython3.11-minimal
+libpython3.11-stdlib
+libreadline-dev
+libreadline8
+librtmp1
+libsasl2-2
+libsasl2-dev
+libsasl2-modules-db
+libseccomp-dev
+libseccomp2
+libsnappy-dev
+libsnappy1v5
+libsodium-dev
+libsodium23
+libsqlite3-0
+libsqlite3-dev
+libssh2-1
+libssh2-1-dev
+libssl-dev
+libssl3
+libstdc++6
+libsystemd-dev
+libsystemd0
+libtasn1-6
+libtbb-dev
+libtbb12
+libtiff-dev
+libtiff6
+libtinfo6
+libtirpc3
+libtool
+libudev1
+libunistring2
+libuuid1
+libuv1
+libuv1-dev
+libvulkan-dev
+libwebp-dev
+libwebp7
+libxkbcommon-dev
+libxkbcommon0
+libxml2
+libxml2-dev
+libxslt1-dev
+libxslt1.1
+libyaml-0-2
+libyaml-dev
+libzmq3-dev
+libzmq5
+libzstd-dev
+libzstd1
+linux-libc-dev
+lsof
+m4
+make
+meson
+nasm
+nettle-dev
+ninja-build
+nginx
+nodejs
+npm
+openssh-client
+openssl
+patch
+patchelf
+perl-base
+perl-modules-5.36
+pkg-config
+procps
+protobuf-compiler
+python3
+python3-dev
+python3-minimal
+python3-pip
+python3-setuptools
+python3-venv
+python3.11
+python3.11-minimal
+re2c
+rsync
+socat
+strace
+sudo
+swig
+tcl
+tk
+tree
+unzip
+uuid-dev
+valgrind
+wget
+xxd
+xz-utils
+yasm
+zip
+zlib1g
+zlib1g-dev
+
+
+
+
+# ============================================
+# Runtime libraries (from test failures)
+# ============================================
+# binutils dependencies
+libctf0
+libctf-nobfd0
+libgprofng0
+libjansson4
+libbinutils
+
+# curl dependencies
+libcurl4
+libnghttp2-14
+libpsl5
+librtmp1
+libssh2-1
+libidn2-0
+libunistring2
+libbrotli1
+
+# OpenSSL dependencies
+libssl3
+libcrypto3
+
+# PCRE dependencies
+libpcre3
+libpcre16-3
+libpcre32-3
+libpcrecpp0v5
+libpcre2-8-0
+
+# Python dependencies
+libpython3.11
+libpython3.11-stdlib
+libpython3.11-minimal
+python3
+python3-minimal
+python3.11
+python3.11-minimal
+libsqlite3-0
+libtirpc3
+libuuid1
+libnsl2
+libdb5.3
+libgdbm6
+libmpdec3
+libexpat1
+libzstd1
+
+# Readline dependencies
+libreadline8
+libtinfo6
+libncurses6
+libncursesw6
+libedit2
+
+# XML dependencies
+libxml2
+libxslt1.1
+liblzma5
+libgcrypt20
+libgpg-error0
+
+# System libraries
+libc6
+libc-dev
+libc6-dev
+libc-dev-bin
+linux-libc-dev
+libgcc-s1
+libstdc++6
+libatomic1
+libacl1
+libattr1
+libcap2
+libseccomp2
+libsystemd0
+libudev1
+
+# Compression
+zlib1g
+libbz2-1.0
+liblz4-1
+liblzma5
+libzstd1
+libbrotli1
+
+# Networking
+libnghttp2-14
+libpsl5
+librtmp1
+libssh2-1
+libidn2-0
+libunistring2
+
+# Database
+libpq5
+libsqlite3-0
+libmariadb3
+
+# Image processing
+libjpeg62-turbo
+libpng16-16
+libtiff6
+libwebp7
+libgif7
+
+# Terminal
+libncurses6
+libncursesw6
+libtinfo6
+libreadline8
+libedit2
+
+# Math
+libgmp10
+libmpfr6
+libmpc3
+libopenblas0
+
+# Security/Crypto
+libgnutls30
+libnettle8
+libhogweed6
+libgmp10
+libp11-kit0
+libtasn1-6
+libkrb5-3
+libgssapi-krb5-2
+libldap-2.5-0
+libsasl2-2
+
+# Build tools runtime
+make
+gcc
+g++
+cpp
+libgcc-12-dev
+libstdc++-12-dev
+
+# Virtual packages (these will be satisfied by other packages)
+libc-dev
+python3:any

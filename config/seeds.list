@@ -79,7 +79,6 @@ default-libmysqlclient-dev
 file
 flex
 g++
-gawk
 gcc
 gcc-11
 gcc-12

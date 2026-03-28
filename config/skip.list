@@ -15,10 +15,12 @@ bash                    # Shell - needed for build scripts
 coreutils               # Basic Unix commands (cp, mv, rm, etc.)
 dash                    # POSIX shell
 diffutils               # diff/cmp
+gawk                    # GNU awk (mawk provides awk - avoid conflicts)
 grep                    # Text search - needed for build scripts
 sed                     # Stream editor - needed for build scripts
 gzip                    # Compression
 findutils               # find command
+original-awk            # Traditional awk (mawk provides sufficient awk functionality)
 
 # System management
 base-files              # Basic system files
