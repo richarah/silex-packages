@@ -783,3 +783,7 @@ libpcre32-3
 libpcrecpp0v5
 libjs-underscore
 libc-dev
+libctf0
+libctf-nobfd0
+libncurses6
+libncursesw6
