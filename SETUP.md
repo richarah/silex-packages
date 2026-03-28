@@ -140,6 +140,55 @@ docker run --rm -it ghcr.io/richarah/silex:slim sh -c '
 Or from a plain Alpine/Wolfi container with the key and repo added manually
 (see README.md for the setup commands).
 
+## 8. Managing package selection (ongoing)
+
+The repository is built from packages listed in `config/seeds.list`. The dependency
+resolver automatically computes the transitive closure via `resolve-deps.sh`.
+
+### Finding missing dependencies
+
+When a new test fails due to missing packages, use the automated dependency analysis:
+
+```sh
+./scripts/find-missing-deps.sh          # Show what's missing
+./scripts/find-missing-deps.sh --auto-add  # Add missing packages to seeds.list
+```
+
+This scans the packages you've already selected and identifies unmet dependencies.
+It's fast because it only analyzes what you have, not the entire Debian archive.
+
+### Validating package selection
+
+After updating `seeds.list`, validate the result:
+
+```sh
+./scripts/test-seeds.sh --verbose
+```
+
+This checks:
+- All packages exist in Debian Bookworm
+- Total repository size is within limits (~4GB)
+- Critical packages (gcc, curl, etc.) are present
+- No obvious bloat (fonts, games, docs) slipped in
+
+### Configuration
+
+Edit `config/pkg-selection.conf` to adjust:
+- Maximum repository size in GB
+- Which package priorities to include (required, important, standard, optional)
+- Which optional categories to include (build tools, languages, etc.)
+- Exclusion patterns (docs, debug symbols, GUI libraries, etc.)
+
+Then regenerate from scratch:
+
+```sh
+./scripts/generate-seeds.sh              # Generate and show what would be added
+./scripts/generate-seeds.sh --auto-add   # Auto-add all selected packages
+```
+
+**KISS approach**: Start with `find-missing-deps.sh` when a package is missing.
+Use `generate-seeds.sh` only when you want a complete package refresh.
+
 ## Signing design
 
 Individual `.apk` files are **unsigned**. Only `APKINDEX.tar.gz` is signed.
