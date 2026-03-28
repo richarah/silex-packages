@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'config/**'
+      - 'lists/**'
       - 'scripts/**'
       - '.github/workflows/**'
       - 'Makefile'
