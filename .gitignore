@@ -24,3 +24,7 @@ tmp/
 # OS junk
 .DS_Store
 Thumbs.db
+
+# cache
+.classify-cache
+.closure-cache
