@@ -11,6 +11,11 @@ on:
     - cron: '0 4 * * 1'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   build:
     name: Build (x86_64 + aarch64)
