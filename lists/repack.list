@@ -150,6 +150,7 @@ libboost-dev
 libboost1.88-dev
 libbrotli-dev
 libbsd-dev
+libbz2-1.0
 libbz2-dev
 libc-ares-dev
 libc-dev-bin
@@ -164,9 +165,12 @@ libclang-common-19-dev
 libclang-common-20-dev
 libclang-common-21-dev
 libcrypt-dev
+libcurl4
 libcurl4-openssl-dev
 libdatrie-dev
 libdb5.3t64
+libcom-err2
+libdbus-1-3
 libdbus-1-dev
 libdebuginfod-common
 libdebuginfod1t64
@@ -175,12 +179,14 @@ libdpkg-perl
 libdrm-common
 libdrm-dev
 libdw1t64
+libedit2
 libedit-dev
 libegl-dev
 libelf1t64
 libepoxy-dev
 liberror-perl
 libevent-dev
+libexpat1
 libexpat1-dev
 libext2fs-dev
 libffi-dev
@@ -188,6 +194,7 @@ libfontconfig-dev
 libfontconfig1-dev
 libfreetype-dev
 libfribidi-dev
+libgcc-s1
 libgcc-11-dev
 libgcc-12-dev
 libgcc-13-dev
@@ -276,6 +283,7 @@ libpython3-stdlib
 libpython3.13-dev
 libpython3.13-minimal
 libpython3.13-stdlib
+libreadline8
 libreadline-dev
 librsvg2-common
 librtmp-dev
@@ -291,13 +299,17 @@ libsm-dev
 libsnappy-dev
 libsodium-dev
 libsource-highlight-common
+libsqlite3-0
 libsqlite3-dev
 libssh2-1-dev
+libssl3
 libssl-dev
+libstdc++6
 libstdc++-13-dev
 libstdc++-14-dev
 libstdc++-15-dev
 libsysprof-capture-4-dev
+libsystemd0
 libsystemd-dev
 libsystemd-shared
 libtasn1-6-dev
@@ -777,6 +789,7 @@ xxd
 xz-utils
 yasm
 zip
+zlib1g
 zlib1g-dev
 ncurses-bin
 libpcre32-3
