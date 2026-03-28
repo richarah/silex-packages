@@ -54,3 +54,27 @@ llvm-14-linker-tools
 llvm-15-linker-tools
 llvm-16-linker-tools
 llvm-19-linker-tools
+
+# Silex compat test packages (2026-03-28)
+bison
+flex
+gfortran
+libbz2-dev
+libffi-dev
+libncurses-dev
+libpng-dev
+libpcre3-dev
+libreadline-dev
+libtiff-dev
+libtbb-dev
+libssl-dev
+pkg-config
+python3-dev
+curl
+nginx
+nodejs
+npm
+build-essential
+tcl
+libpcre3
+zlib1g-dev
