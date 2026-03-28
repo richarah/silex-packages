@@ -1,14 +1,18 @@
-# Packages to exclude from the dependency closure.
-# These are already present in silex:slim base image,
-# are meta-packages with no files, or are otherwise unnecessary.
+# Packages to exclude from the dependency closure (CI management).
+# These are already present in silex:slim base image, so we skip them during
+# the build to avoid recompiling/repacking (faster, safer, not needed for CI).
+#
+# IMPORTANT: Packages here may STILL be needed in the final APK repository
+# for end users. Use config/required-repo.list to force such packages into
+# the repository despite being in skip.list.
+#
 # One Debian package name per line. Lines starting with # are ignored.
 
 # ============================================
-# REQUIRED: Already in silex:slim base image
+# Already in silex:slim base image
 # ============================================
-# Core system packages bundled with alpine:latest
-# These MUST NOT be repacked - they would break the build
-# and are already optimized in the base image.
+# Core system packages bundled with Alpine/Debian base.
+# Excluded from closure to keep build fast and predictable.
 
 # Shell / core utilities
 bash                    # Shell - needed for build scripts

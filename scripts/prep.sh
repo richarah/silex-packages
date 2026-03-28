@@ -40,17 +40,22 @@ fi
 printf '=== classifying packages ===\n'
 "$SCRIPT_DIR/classify.sh" "$RECOMPILE" "$REPACK" < "$CLOSURE"
 
-# Force include packages from repack-override.list even if filtered by skip.list
-# These are needed in the final repository but protected in CI by skip.list
-REPACK_OVERRIDE="$REPO_ROOT/config/repack-override.list"
-if [ -f "$REPACK_OVERRIDE" ]; then
-    printf '=== adding repack-override.list packages ===\n'
-    grep -v "^#" "$REPACK_OVERRIDE" | grep -v "^$" | while IFS= read -r pkg; do
+# ── Ensure repository requirements ────────────────────────────────────────
+# Package inclusion is determined by three independent systems:
+#   1. skip.list:           Packages in base image (filtered from closure → not in repo)
+#   2. repack-override:     Override classification (repack vs recompile)
+#   3. required-repo.list:  Force into repo despite skip.list (NEW)
+#
+# This separation ensures: build tools are protected in CI but available to users.
+
+REQUIRED_REPO="$REPO_ROOT/config/required-repo.list"
+if [ -f "$REQUIRED_REPO" ]; then
+    printf '=== ensuring required-repo.list packages ===\n'
+    grep -v "^#" "$REQUIRED_REPO" | grep -v "^$" | while IFS= read -r pkg; do
         if ! grep -qx "$pkg" "$REPACK" 2>/dev/null; then
             printf '%s\n' "$pkg" >> "$REPACK"
         fi
     done
-    printf 'added repack-override packages to repack.list\n'
 fi
 
 printf '=== prep done ===\n'

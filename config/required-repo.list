@@ -1,0 +1,16 @@
+# Packages that MUST be in the final APK repository
+# regardless of whether they're in skip-ci.list.
+#
+# Use case: build-essential depends on unversioned gcc, g++, make, binutils,
+# libc6-dev metapackages. These are in skip-ci.list (already in silex:slim
+# base image) but are critical for end users of the repository. This list
+# ensures they make it to repack.list despite skip-ci.list filtering.
+#
+# One Debian package name per line. Lines starting with # are ignored.
+
+# Build essentials - metapackages needed by build-essential
+gcc
+g++
+make
+binutils
+libc6-dev
