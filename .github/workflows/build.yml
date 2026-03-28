@@ -74,6 +74,15 @@ jobs:
           PRIVKEY: /tmp/silex-keys/silex-packages.rsa
           PUBKEY:  /tmp/silex-keys/silex-packages.rsa.pub
 
+      - name: Upload build artifacts
+        if: success()
+        uses: actions/upload-artifact@v5
+        with:
+          name: silex-packages-apks
+          path: |
+            x86_64/
+            aarch64/
+
   sign-indexes:
     name: Sign APKINDEXes
     needs: build
