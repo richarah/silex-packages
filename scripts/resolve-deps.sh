@@ -42,10 +42,11 @@ printf 'resolve-deps: computing closure from seeds...\n' >&2
 
 # Expand dependency closure for each seed, deduplicate, filter skip list,
 # then verify each package has a real binary in parallel (apt-cache show).
-# Include Recommends and Suggests for complete closure (e.g., nodejs→npm, cmake→librhash0,libuv1)
 grep -v '^#' "$SEEDS" | grep -v '^[[:space:]]*$' | while IFS= read -r pkg; do
     apt-cache depends \
         --recurse \
+        --no-recommends \
+        --no-suggests \
         --no-conflicts \
         --no-breaks \
         --no-replaces \
