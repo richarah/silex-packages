@@ -646,16 +646,17 @@ jobs:
         with:
           name: packages-aarch64
           path: aarch64/
-      - name: Sign both indexes
+      - name: Sign both indexes (parallel)
         run: |
           for idx in x86_64/APKINDEX.tar.gz aarch64/APKINDEX.tar.gz; do
             if [ -f "$idx" ]; then
               PACKAGER_PRIVKEY=/tmp/silex-keys/silex-packages.rsa \
-                abuild-sign -k /tmp/silex-keys/silex-packages.rsa "$idx"
+                abuild-sign -k /tmp/silex-keys/silex-packages.rsa "$idx" &
             else
               printf 'sign: %s not found, skipping\n' "$idx"
             fi
           done
+          wait
       - uses: actions/upload-artifact@v5
         with:
           name: signed-x86_64
