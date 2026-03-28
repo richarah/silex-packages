@@ -3,48 +3,59 @@
 # are meta-packages with no files, or are otherwise unnecessary.
 # One Debian package name per line. Lines starting with # are ignored.
 
-# Already in silex:slim base image (minimal subset of debian:bookworm-slim)
-base-files
-base-passwd
-bash
-coreutils
-dash
-debianutils
-diffutils
-dpkg
-findutils
-grep
-gzip
-hostname
-init-system-helpers
-libacl1
-libattr1
-libblkid1
-libc-bin
-libc6
-libcap2
-libcrypt1
-libdebconfclient0
-libgcc-s1
-libmount1
-libncursesw6
-libpam-modules
-libpam-modules-bin
-libpam-runtime
-libpam0g
-libpcre2-8-0
-libseccomp2
-libselinux1
-libsmartcols1
-libstdc++6
-libsystemd0
-libudev1
-login
-mawk
-mount
-passwd
-perl-base
-sed
-sysvinit-utils
-util-linux
-zlib1g
+# ============================================
+# REQUIRED: Already in silex:slim base image
+# ============================================
+# Core system packages bundled with alpine:latest
+# These MUST NOT be repacked - they would break the build
+# and are already optimized in the base image.
+
+# Shell / core utilities
+bash                    # Shell - needed for build scripts
+coreutils               # Basic Unix commands (cp, mv, rm, etc.)
+dash                    # POSIX shell
+diffutils               # diff/cmp
+grep                    # Text search - needed for build scripts
+sed                     # Stream editor - needed for build scripts
+gzip                    # Compression
+findutils               # find command
+
+# System management
+base-files              # Basic system files
+base-passwd             # Users/groups
+debianutils             # System utilities
+dpkg                    # Package manager
+hostname                # Hostname management
+init-system-helpers     # Init system
+login                   # User login
+mawk                    # AWK interpreter - needed for build scripts
+mount                   # Filesystem mounting
+passwd                  # User/password management
+sysvinit-utils          # System initialization
+util-linux              # Miscellaneous utilities
+
+# Core libraries (compiled into alpine base)
+libc6                   # C library - fundamental
+libc-bin                # C library utilities
+libgcc-s1               # GCC runtime
+libstdc++6              # C++ runtime
+libcap2                 # POSIX capabilities
+libcrypt1               # Encryption
+libacl1                 # ACL support
+libattr1                # File attributes
+libblkid1               # Block device identification
+libdebconfclient0       # Debian config framework
+libmount1               # Filesystem mounting
+libncursesw6            # Terminal handling
+libpam0g                # Authentication
+libpam-modules          # PAM modules
+libpam-modules-bin      # PAM utilities
+libpam-runtime          # PAM runtime
+libpcre2-8-0            # Regular expressions
+libseccomp2             # Seccomp filtering
+libselinux1             # SELinux
+libsmartcols1           # Column formatting
+libsystemd0             # Systemd libraries
+libudev1                # Device management
+perl-base               # Perl core
+zlib1g                  # Compression library
