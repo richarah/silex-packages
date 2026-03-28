@@ -93,7 +93,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Install signing tools
-        run: apk add --no-cache openssl abuild
+        run: apk add --no-cache openssl abuild git
 
       - name: Download build artifacts
         uses: actions/download-artifact@v5
