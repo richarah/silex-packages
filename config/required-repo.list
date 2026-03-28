@@ -77,3 +77,7 @@ perl-base
 
 # System initialization (SysVinit - Alpine doesn't use, but safe)
 sysvinit-utils
+
+# Missing runtime libraries (required by repacked packages with old Debian versions)
+librhash1
+libuv1t64
