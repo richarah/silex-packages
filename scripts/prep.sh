@@ -8,9 +8,9 @@ export ARCH="${ARCH:-$(uname -m)}"
 
 mkdir -p "$REPO_ROOT/lists"
 
-# Compile apk-tar helper
-cc -O2 -o /tmp/silex-apk-tar "$SCRIPT_DIR/apk-tar.c" ||
-    { printf 'ERROR: failed to compile apk-tar.c\n' >&2; exit 1; }
+# apk-tar helper is compiled by Makefile's compile-helpers target
+# Check that it exists
+[ -x /tmp/silex-apk-tar ] || { printf 'ERROR: apk-tar not found at /tmp/silex-apk-tar (compile-helpers target must run first)\n' >&2; exit 1; }
 
 CLOSURE=$(mktemp)
 RECOMPILE="$REPO_ROOT/lists/recompile.list"

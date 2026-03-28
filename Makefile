@@ -44,7 +44,7 @@ help:
 
 # ── Main targets ────────────────────────────────────────────
 
-build: build-x86 build-arm
+build: compile-helpers build-x86 build-arm
 	@printf "\n✓ Build complete (x86_64 + aarch64)\n"
 
 build-x86: prep-x86 repack-x86 recompile-x86 merge-x86
@@ -53,19 +53,27 @@ build-x86: prep-x86 repack-x86 recompile-x86 merge-x86
 build-arm: prep-arm repack-arm recompile-arm merge-arm
 	@printf "✓ aarch64 build complete\n"
 
+# ── Compile helper binaries (must run once, before parallel phases) ────
+
+compile-helpers:
+	@printf "[compile] Building helper binaries...\n"
+	@cc -O2 -o /tmp/silex-apk-tar "$(SCRIPTS_DIR)/apk-tar.c" || \
+		{ printf 'ERROR: failed to compile apk-tar.c\n' >&2; exit 1; }
+	@printf "✓ Helper binaries compiled\n"
+
 # ── Prep phase ────────────────────────────────────────────
 
 prep: prep-x86 prep-arm
 	@printf "✓ Prep complete\n"
 
-prep-x86:
+prep-x86: compile-helpers
 	@mkdir -p "$(REPO_ROOT)/x86_64"
 	@printf "[prep] Generating recompile layers...\n"
 	@cd "$(REPO_ROOT)" && ./scripts/gen-layers.sh
 	@printf "[prep] x86_64 preprocessing...\n"
 	@cd "$(REPO_ROOT)" && ARCH=x86_64 ./scripts/prep.sh
 
-prep-arm:
+prep-arm: compile-helpers
 	@mkdir -p "$(REPO_ROOT)/aarch64"
 	@printf "[prep] aarch64 preprocessing...\n"
 	@cd "$(REPO_ROOT)" && ARCH=aarch64 ./scripts/prep.sh
