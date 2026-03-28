@@ -18,7 +18,7 @@ jobs:
 
   prep-x86:
     name: Prep (x86_64)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     container:
       image: debian:bookworm
     steps:
@@ -59,7 +59,7 @@ jobs:
   repack-x86:
     name: Repack x86 (${{ matrix.chunk }})
     needs: prep-x86
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     container:
       image: debian:bookworm
     strategy:
@@ -121,7 +121,7 @@ jobs:
   recompile-x86-L0:
     name: Recompile x86 L0
     needs: prep-x86
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     container:
       image: debian:bookworm
     steps:
@@ -184,7 +184,7 @@ jobs:
   recompile-x86-L1:
     name: Recompile x86 L1
     needs: recompile-x86-L0
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     container:
       image: debian:bookworm
     steps:
@@ -252,7 +252,7 @@ jobs:
   merge-x86:
     name: Merge & index (x86_64)
     needs: [repack-x86, recompile-x86-L1]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     container:
       image: alpine:3.23
     steps:
@@ -621,7 +621,7 @@ jobs:
   sign-indexes:
     name: Sign indexes
     needs: [merge-x86, merge-arm]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     container:
       image: alpine:3.23
     steps:
