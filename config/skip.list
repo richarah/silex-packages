@@ -1,9 +1,10 @@
 # Packages to exclude from the dependency closure.
-# These are already present in debian:bookworm-slim (or silex:slim base),
+# These are already present in silex:slim base image,
 # are meta-packages with no files, or are otherwise unnecessary.
 # One Debian package name per line. Lines starting with # are ignored.
 
-# Already in debian:bookworm-slim base image
+# Already in silex:slim base image (minimal subset of debian:bookworm-slim)
+# Only exclude packages that are CONFIRMED to be in silex:slim
 base-files
 base-passwd
 bash
@@ -50,20 +51,14 @@ libsmartcols1
 libss2
 libstdc++6
 libsystemd0
-libtinfo6
 libudev1
-libuuid1
 libzstd1
 login
 mawk
 mount
-ncurses-base
-ncurses-bin
 passwd
 perl-base
 sed
 sysvinit-utils
-tar
-tzdata
 util-linux
 zlib1g
