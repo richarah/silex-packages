@@ -40,6 +40,19 @@ fi
 printf '=== classifying packages ===\n'
 "$SCRIPT_DIR/classify.sh" "$RECOMPILE" "$REPACK" < "$CLOSURE"
 
+# Force include packages from repack-override.list even if filtered by skip.list
+# These are needed in the final repository but protected in CI by skip.list
+REPACK_OVERRIDE="$REPO_ROOT/config/repack-override.list"
+if [ -f "$REPACK_OVERRIDE" ]; then
+    printf '=== adding repack-override.list packages ===\n'
+    grep -v "^#" "$REPACK_OVERRIDE" | grep -v "^$" | while IFS= read -r pkg; do
+        if ! grep -qx "$pkg" "$REPACK" 2>/dev/null; then
+            printf '%s\n' "$pkg" >> "$REPACK"
+        fi
+    done
+    printf 'added repack-override packages to repack.list\n'
+fi
+
 printf '=== prep done ===\n'
 printf 'recompile: %d\n' "$(wc -l < "$RECOMPILE")"
 printf 'repack:    %d\n' "$(wc -l < "$REPACK")"
