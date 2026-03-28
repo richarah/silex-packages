@@ -249,3 +249,15 @@ tzdata
 libglib2.0-0
 tk
 libmariadb-dev
+
+# Missing runtime dependencies for Silex compat tests
+libgprofng0
+libjansson4
+ncurses-bin
+libtirpc3
+libpcre16-3
+libpcre32-3
+libpcrecpp0v5
+libicu72
+libjs-jquery
+libjs-underscore
