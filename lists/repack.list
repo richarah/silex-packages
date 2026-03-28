@@ -787,3 +787,15 @@ libctf0
 libctf-nobfd0
 libncurses6
 libncursesw6
+# Additional common runtime libraries (comprehensive coverage)
+libglib2.0-0
+libffi8
+libcap2
+libseccomp2
+libzstd1
+libc6
+libtasn1-6
+libp11-kit0
+libhogweed6
+libnettle8
+libgmp10
