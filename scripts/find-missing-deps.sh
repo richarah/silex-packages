@@ -20,7 +20,7 @@ log() {
 log "Analyzing current packages for missing runtime dependencies..."
 
 # Get all packages we have in seeds.list
-SEEDS=$(grep -v '^#' "$REPO_ROOT/lists/seeds.list" 2>/dev/null | grep -v '^$' || true)
+SEEDS=$(grep -v '^#' "$REPO_ROOT/config/seeds.list" 2>/dev/null | grep -v '^$' || true)
 
 if [ -z "$SEEDS" ]; then
     log "ERROR: seeds.list is empty or missing"
@@ -91,14 +91,14 @@ if [ "$AUTO_ADD" = 1 ]; then
     printf "\n[AUTO-ADD MODE] Adding missing packages to seeds.list...\n"
 
     # Backup current
-    cp "$REPO_ROOT/lists/seeds.list" "$REPO_ROOT/lists/seeds.list.pre-auto"
+    cp "$REPO_ROOT/config/seeds.list" "$REPO_ROOT/config/seeds.list.pre-auto"
 
     # Append missing packages (deduped)
-    sort -u "$MISSING" >> "$REPO_ROOT/lists/seeds.list"
+    sort -u "$MISSING" >> "$REPO_ROOT/config/seeds.list"
 
     # Re-sort and deduplicate
-    sort -u "$REPO_ROOT/lists/seeds.list" > "$REPO_ROOT/lists/seeds.list.tmp"
-    mv "$REPO_ROOT/lists/seeds.list.tmp" "$REPO_ROOT/lists/seeds.list"
+    sort -u "$REPO_ROOT/config/seeds.list" > "$REPO_ROOT/config/seeds.list.tmp"
+    mv "$REPO_ROOT/config/seeds.list.tmp" "$REPO_ROOT/config/seeds.list"
 
     printf "✓ Added %d packages to seeds.list (backup: seeds.list.pre-auto)\n" "$MISSING_COUNT"
     printf "\nRun 'make test-seeds' to validate.\n"
