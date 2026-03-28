@@ -27,8 +27,10 @@ SKIP_LIST="$REPO_ROOT/config/skip.list"
 if [ -f "$SKIP_LIST" ]; then
     # Create filtered closure: packages NOT in skip.list
     CLOSURE_FILTERED=$(mktemp)
-    trap "rm -f '$CLOSURE' '$CLOSURE_FILTERED'" EXIT INT TERM
-    comm -23 <(sort "$CLOSURE") <(grep -v "^#" "$SKIP_LIST" | grep -v "^$" | awk '{print $1}' | sort) > "$CLOSURE_FILTERED"
+    SKIP_NAMES=$(mktemp)
+    trap "rm -f '$CLOSURE' '$CLOSURE_FILTERED' '$SKIP_NAMES'" EXIT INT TERM
+    grep -v "^#" "$SKIP_LIST" | grep -v "^$" | awk '{print $1}' | sort > "$SKIP_NAMES"
+    sort "$CLOSURE" | comm -23 - "$SKIP_NAMES" > "$CLOSURE_FILTERED"
     FILTERED_COUNT=$(wc -l < "$CLOSURE_FILTERED")
     SKIPPED=$((CLOSURE_COUNT - FILTERED_COUNT))
     printf 'Filtered out %d packages from skip.list\n' "$SKIPPED"
