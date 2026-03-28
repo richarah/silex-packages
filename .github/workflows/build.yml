@@ -135,7 +135,9 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: |
+            x86_64
+            aarch64
 
   deploy-pages:
     name: Deploy to GitHub Pages
