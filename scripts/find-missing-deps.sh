@@ -93,6 +93,16 @@ if [ "$AUTO_ADD" = 1 ]; then
     # Backup current
     cp "$REPO_ROOT/config/seeds.list" "$REPO_ROOT/config/seeds.list.pre-auto"
 
+    # Filter out packages in skip.list before adding
+    SKIP_LIST="$REPO_ROOT/config/skip.list"
+    if [ -f "$SKIP_LIST" ]; then
+        # Create filtered list: missing packages that are NOT in skip.list
+        comm -23 <(sort "$MISSING") <(grep -v "^#" "$SKIP_LIST" | grep -v "^$" | sort) > "$REPO_ROOT/.missing-filtered"
+        MISSING="$REPO_ROOT/.missing-filtered"
+        FILTERED_COUNT=$(wc -l < "$MISSING" 2>/dev/null || echo 0)
+        printf "  (Filtered out %d packages already in skip.list)\n" $((MISSING_COUNT - FILTERED_COUNT))
+    fi
+
     # Append missing packages (deduped)
     sort -u "$MISSING" >> "$REPO_ROOT/config/seeds.list"
 
@@ -100,7 +110,8 @@ if [ "$AUTO_ADD" = 1 ]; then
     sort -u "$REPO_ROOT/config/seeds.list" > "$REPO_ROOT/config/seeds.list.tmp"
     mv "$REPO_ROOT/config/seeds.list.tmp" "$REPO_ROOT/config/seeds.list"
 
-    printf "✓ Added %d packages to seeds.list (backup: seeds.list.pre-auto)\n" "$MISSING_COUNT"
+    ADDED=$(wc -l < "$MISSING" 2>/dev/null || echo 0)
+    printf "✓ Added %d packages to seeds.list (backup: seeds.list.pre-auto)\n" "$ADDED"
     printf "\nRun 'make test-seeds' to validate.\n"
 else
     printf "\nTo auto-add these to seeds.list, run:\n"
