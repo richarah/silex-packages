@@ -19,7 +19,21 @@ trap 'rm -f "$CLOSURE"' EXIT INT TERM
 
 printf '=== resolving dependency closure ===\n'
 "$SCRIPT_DIR/resolve-deps.sh" > "$CLOSURE"
-printf '%d packages in closure\n' "$(wc -l < "$CLOSURE")"
+CLOSURE_COUNT=$(wc -l < "$CLOSURE")
+printf '%d packages in closure\n' "$CLOSURE_COUNT"
+
+printf '=== filtering skip.list packages ===\n'
+SKIP_LIST="$REPO_ROOT/config/skip.list"
+if [ -f "$SKIP_LIST" ]; then
+    # Create filtered closure: packages NOT in skip.list
+    CLOSURE_FILTERED=$(mktemp)
+    trap "rm -f '$CLOSURE' '$CLOSURE_FILTERED'" EXIT INT TERM
+    comm -23 <(sort "$CLOSURE") <(grep -v "^#" "$SKIP_LIST" | grep -v "^$" | awk '{print $1}' | sort) > "$CLOSURE_FILTERED"
+    FILTERED_COUNT=$(wc -l < "$CLOSURE_FILTERED")
+    SKIPPED=$((CLOSURE_COUNT - FILTERED_COUNT))
+    printf 'Filtered out %d packages from skip.list\n' "$SKIPPED"
+    CLOSURE="$CLOSURE_FILTERED"
+fi
 
 printf '=== classifying packages ===\n'
 "$SCRIPT_DIR/classify.sh" "$RECOMPILE" "$REPACK" < "$CLOSURE"
