@@ -83,6 +83,15 @@ jobs:
             x86_64/
             aarch64/
 
+      - name: Commit results
+        if: success()
+        run: |
+          git config user.email "builder@silex-packages"
+          git config user.name "Silex Builder"
+          git add x86_64/ aarch64/
+          git commit -m "build: rebuild APK repository ($(date -u +%Y-%m-%d))" || true
+          git push || true
+
   sign-indexes:
     name: Sign APKINDEXes
     needs: build
@@ -113,7 +122,6 @@ jobs:
 
       - name: Sign APKINDEXes
         run: |
-          cd "$GITHUB_WORKSPACE"
           for arch in x86_64 aarch64; do
             abuild-sign -k /tmp/silex-keys/silex-packages.rsa "$arch/APKINDEX.tar.gz" &
           done
@@ -127,12 +135,3 @@ jobs:
           path: |
             x86_64/APKINDEX.tar.gz*
             aarch64/APKINDEX.tar.gz*
-
-      - name: Commit results
-        run: |
-          cd "$GITHUB_WORKSPACE"
-          git config user.email "builder@silex-packages"
-          git config user.name "Silex Builder"
-          git add x86_64/ aarch64/
-          git commit -m "build: rebuild APK repository ($(date -u +%Y-%m-%d))" || true
-          git push || true
