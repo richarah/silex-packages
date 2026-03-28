@@ -132,12 +132,16 @@ jobs:
             x86_64/APKINDEX.tar.gz*
             aarch64/APKINDEX.tar.gz*
 
+      - name: Prepare Pages content
+        run: |
+          mkdir -p _pages
+          cp -r x86_64 _pages/
+          cp -r aarch64 _pages/
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: |
-            x86_64
-            aarch64
+          path: _pages
 
   deploy-pages:
     name: Deploy to GitHub Pages
