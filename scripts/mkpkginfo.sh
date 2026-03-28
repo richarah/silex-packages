@@ -2,9 +2,16 @@
 # mkpkginfo.sh <debian-control-file> <installed-size-bytes> [arch]
 # Read a Debian binary package control file, output APK .PKGINFO to stdout.
 #
-# Handles multi-line Depends/Pre-Depends (RFC 5322 continuation lines).
+# Translates Debian package metadata to APK .PKGINFO format.
+# Only includes hard dependencies (Depends, Pre-Depends).
+# Recommends/Suggests are NOT included since APK has no soft dependency mechanism.
+# Handles multi-line dependencies (RFC 5322 continuation lines).
 # Strips epochs (1:3.4.1 -> 3.4.1), normalises ~ to _ in versions.
 # Arch defaults to $(uname -m) if not given.
+#
+# Environment:
+#   DEP_OVERRIDES_FILE - path to config/dep-overrides.conf for manual dependency fixes
+#   (default: ../config/dep-overrides.conf relative to script location)
 
 set -e
 
@@ -45,20 +52,48 @@ deb_ver() {
     printf '%s' "$1" | sed 's/^[0-9]*://; s/~/_/g'
 }
 
-# parse_deps
+# parse_deps <package-name>
 # Read comma- or newline-separated Debian dependency list from stdin.
 # Print one "depend = <name>" line per dependency.
 # Handles: version constraints "(>= 1.2)", arch qualifiers "[amd64]",
-# OR alternatives "a | b" (first alternative taken).
+# OR alternatives "a | b" (takes first available, skips virtual-only).
+# Also handles architecture-specific dependencies via [arch] syntax.
 parse_deps() {
+    local pkgname="$1"
+    local host_arch="${PKGARCH:-x86_64}"
+
     tr ',' '\n' | while IFS= read -r dep; do
-        dep="${dep%%|*}"                                          # first alt
-        dep=$(printf '%s' "$dep" | sed 's/([^)]*)//g')           # drop version
-        dep=$(printf '%s' "$dep" | sed 's/\[[^]]*\]//g')         # drop arch
+        orig_dep="$dep"
+
+        # Handle arch qualifiers: package [amd64] or package [!amd64]
+        # If [!amd64], skip on amd64; if [amd64], only include on amd64
+        if printf '%s' "$dep" | grep -q '\['; then
+            arch_spec=$(printf '%s' "$dep" | sed 's/.*\[\([^]]*\)\].*/\1/')
+            case "$arch_spec" in
+                !$host_arch) ;; # Negated arch, skip on this arch
+                !*) dep=$(printf '%s' "$dep" | sed 's/[[:space:]]*\[[^]]*\]//')  ;; # Negated other, include
+                $host_arch) dep=$(printf '%s' "$dep" | sed 's/[[:space:]]*\[[^]]*\]//') ;; # Positive match
+                *) continue ;; # Positive mismatch, skip
+            esac
+        fi
+
+        # Handle OR alternatives: take first non-virtual package
+        for alt in $(printf '%s' "$dep" | sed 's/[[:space:]]*|[[:space:]]/\n/g'); do
+            alt=$(printf '%s' "$alt" | sed 's/([^)]*)//g; s/\[[^]]*\]//g; s/^[[:space:]]*//; s/[[:space:]]*$//')
+
+            # Skip Debian build-system substitution variables (${shlibs:Depends} etc.)
+            case "$alt" in '${'*) continue ;; esac
+
+            # Skip empty after cleanup
+            [ -n "$alt" ] || continue
+
+            # Use this alternative
+            dep="$alt"
+            break
+        done
+
         dep=$(printf '%s' "$dep" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
-        # Skip Debian build-system substitution variables (${shlibs:Depends} etc.)
-        case "$dep" in '${'*) continue ;; esac
-        [ -n "$dep" ] && printf 'depend = %s\n' "$dep"
+        [ -n "$dep" ] && [ "$dep" != "$orig_dep" ] && printf 'depend = %s\n' "$dep"
     done
 }
 
@@ -90,7 +125,20 @@ printf 'builddate = %s\n' "$(date +%s)"
 printf 'packager = silex-packages\n'
 
 # Hard dependencies: Pre-Depends then Depends
+# Note: Recommends and Suggests are NOT included, as APK has no soft dependency mechanism.
+# This differs from Debian but is necessary for APK compatibility.
 for field in Pre-Depends Depends; do
     deps=$(get "$field")
-    [ -n "$deps" ] && printf '%s\n' "$deps" | parse_deps
+    [ -n "$deps" ] && printf '%s\n' "$deps" | parse_deps "$PKG"
 done
+
+# Apply manual dependency overrides if config file exists
+# Format: package:dependency (one per line, # for comments)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+DEP_OVERRIDES_FILE="${DEP_OVERRIDES_FILE:-$REPO_ROOT/config/dep-overrides.conf}"
+if [ -f "$DEP_OVERRIDES_FILE" ]; then
+    grep "^${PKG}:" "$DEP_OVERRIDES_FILE" 2>/dev/null | while IFS=: read -r pkg dep; do
+        [ -n "$dep" ] && printf 'depend = %s\n' "$dep"
+    done || true
+fi
