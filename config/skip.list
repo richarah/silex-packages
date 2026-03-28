@@ -61,3 +61,35 @@ libsystemd0             # Systemd libraries
 libudev1                # Device management
 perl-base               # Perl core
 zlib1g                  # Compression library
+
+# ============================================
+# Build tools - CRITICAL
+# ============================================
+# Compiler toolchain and build utilities required by recompile phase.
+# MUST NOT be repacked - the build process itself uses them.
+
+autoconf                # Autoconf macros
+automake                # Automake build system
+binutils                # GNU binary tools (ar, ld, nm, etc.)
+binutils-common         # Binutils common files
+binutils-x86-64-linux-gnu  # Binutils for x86-64
+cmake                   # CMake build system
+cpp                     # C preprocessor
+flex                    # Lexical analyzer generator
+g++                     # C++ compiler
+gcc                     # C compiler
+gcc-11-base             # GCC 11 base
+gcc-12-base             # GCC 12 base
+gcc-13-base             # GCC 13 base
+gcc-13                  # GCC 13 compiler
+gcc-14-base             # GCC 14 base
+gcc-14                  # GCC 14 compiler
+gcc-15-base             # GCC 15 base
+gcc-15                  # GCC 15 compiler
+gcc-x86-64-linux-gnu    # GCC for x86-64
+libbinutils             # Binutils library
+make                    # GNU make
+make-guile              # GNU make with Guile
+patch                   # Patch utility
+pkg-config              # Package config tool
+m4                      # GNU m4 macro processor
