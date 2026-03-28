@@ -132,9 +132,23 @@ jobs:
             x86_64/APKINDEX.tar.gz*
             aarch64/APKINDEX.tar.gz*
 
-      - name: Publish to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: .
-          keep_files: true
+          path: .
+
+  deploy-pages:
+    name: Deploy to GitHub Pages
+    needs: sign-indexes
+    runs-on: ubuntu-latest
+    if: success()
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
