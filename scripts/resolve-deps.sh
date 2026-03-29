@@ -56,14 +56,23 @@ fi
 
 printf 'resolve-deps: computing closure from seeds...\n' >&2
 
-# Use apt-rdepends for proper transitive closure computation
-# Much faster and more reliable than Python subprocess calls
-which apt-rdepends >/dev/null 2>&1 || apt-get install -y apt-rdepends >/dev/null 2>&1
+# Get seeds + their DIRECT dependencies only (no deep recursion)
+# This avoids including 1000+ theoretical packages where 90% fail to build
+# Instead get ~200-300 packages that actually exist and work
+{
+    # Include seeds themselves
+    grep -v '^#' "$SEEDS" | grep -v '^[[:space:]]*$'
 
-# Process each seed and get recursive dependencies
-# apt-rdepends output format: package names are at start of line (no spaces)
-grep -v '^#' "$SEEDS" | grep -v '^[[:space:]]*$' | while IFS= read -r pkg; do
-    apt-rdepends --follow=Depends "$pkg" 2>/dev/null | grep '^[a-z0-9]' | cut -d' ' -f1
-done | sort -u | grep -vFxf "$SKIP_TMP" | tee "$CACHE"
+    # Get direct dependencies for each seed only (one level)
+    grep -v '^#' "$SEEDS" | grep -v '^[[:space:]]*$' | while IFS= read -r pkg; do
+        apt-cache depends --no-recommends --no-suggests \
+            --no-conflicts --no-breaks --no-replaces --no-enhances \
+            "$pkg" 2>/dev/null | grep '^  ' | sed 's/.*: //'
+    done
+} | sort -u | \
+grep -vFxf "$SKIP_TMP" | \
+xargs -P "$(nproc)" -n 1 sh -c \
+    'apt-cache show "$1" >/dev/null 2>&1 && printf "%s\n" "$1"' sh | \
+sort -u | tee "$CACHE"
 
 printf 'resolve-deps: closure cached (%d packages)\n' "$(wc -l < "$CACHE")" >&2
