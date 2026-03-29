@@ -61,9 +61,9 @@ printf 'resolve-deps: computing closure from seeds...\n' >&2
 which apt-rdepends >/dev/null 2>&1 || apt-get install -y apt-rdepends >/dev/null 2>&1
 
 # Process each seed and get recursive dependencies
+# apt-rdepends output format: package names are at start of line (no spaces)
 grep -v '^#' "$SEEDS" | grep -v '^[[:space:]]*$' | while IFS= read -r pkg; do
-    apt-rdepends --follow=Depends --print-state "$pkg" 2>/dev/null | grep "^  " | sed 's/^  //'
-    echo "$pkg"  # Include the seed itself
+    apt-rdepends --follow=Depends "$pkg" 2>/dev/null | grep '^[a-z0-9]' | cut -d' ' -f1
 done | sort -u | grep -vFxf "$SKIP_TMP" | tee "$CACHE"
 
 printf 'resolve-deps: closure cached (%d packages)\n' "$(wc -l < "$CACHE")" >&2
