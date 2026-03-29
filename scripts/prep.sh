@@ -53,7 +53,12 @@ if [ -f "$REQUIRED_REPO" ]; then
     printf '=== ensuring required-repo.list packages ===\n'
     grep -v "^#" "$REQUIRED_REPO" | grep -v "^$" | while IFS= read -r pkg; do
         if ! grep -qx "$pkg" "$REPACK" 2>/dev/null; then
-            printf '%s\n' "$pkg" >> "$REPACK"
+            # Validate package exists in Debian before adding
+            if apt-cache show "$pkg" >/dev/null 2>&1; then
+                printf '%s\n' "$pkg" >> "$REPACK"
+            else
+                printf 'WARNING: required-repo package not in Debian: %s (skipped)\n' "$pkg" >&2
+            fi
         fi
     done
 fi
