@@ -72,3 +72,4 @@ libreadline-dev
 libncurses-dev
 cmake-data
 procps
+tcl
