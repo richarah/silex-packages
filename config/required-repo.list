@@ -74,6 +74,9 @@ cmake-data
 procps
 tcl
 
+# libc6-dev: explicit safety net (also in repack-override, but ensure it's in repack.list)
+libc6-dev
+
 # Compat test transitive deps (not reached by 1-level closure)
 # Python runtime libs (needed by python3-dev deps)
 libpython3.11
@@ -107,3 +110,18 @@ libgssapi3-heimdal
 libhcrypto5-heimdal
 libheimbase1-heimdal
 libwind0-heimdal
+# libgnutls30 transitive deps (needed by curl → libgnutls30)
+libunistring2
+libhogweed6
+libnettle8
+libidn2-0
+libpsl5
+librtmp1
+libp11-kit0
+libtasn1-6
+# Python dev transitive deps
+libpython3.11-dev
+libpython3.11
+libpython3-dev
+# C++ stdlib dev (needed by g++-12)
+libstdc++-12-dev

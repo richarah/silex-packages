@@ -12,6 +12,9 @@
 #   - Packages in config/skip.list are removed from the output.
 #   - Virtual packages (no binary available) are silently skipped.
 #   - Lines starting with # or blank lines in seeds.list are skipped.
+#
+# Closure depth: 2 levels (seeds + their deps + their deps' deps).
+# This ensures transitive deps like libgnutls30→libunistring2 are included.
 
 set -e
 
@@ -46,25 +49,42 @@ if [ "$CACHE_VALID" = true ]; then
     exit 0
 fi
 
-printf 'resolve-deps: computing closure from seeds...\n' >&2
+printf 'resolve-deps: computing closure from seeds (2 levels)...\n' >&2
 
-# Get seeds + their DIRECT dependencies only (no deep recursion)
-# Strips version constraints (e.g. "libc6 (>= 2.25)" -> "libc6")
-# Filters to valid Debian package name format only (no virtuals, no garbage)
-{
-    # Include seeds themselves
-    grep -v '^#' "$SEEDS" | grep -v '^[[:space:]]*$'
-
-    # Get direct dependencies for each seed only (one level)
-    grep -v '^#' "$SEEDS" | grep -v '^[[:space:]]*$' | while IFS= read -r pkg; do
+# Helper: get direct deps of packages listed on stdin
+# Strips version constraints and filters to valid Debian package names.
+get_deps() {
+    while IFS= read -r pkg; do
         apt-cache depends --no-recommends --no-suggests \
             --no-conflicts --no-breaks --no-replaces --no-enhances \
             "$pkg" 2>/dev/null \
             | grep '^  [A-Z]' \
             | sed 's/.*: //; s/ (.*//'
-    done
-} | grep -E '^[a-z0-9][a-z0-9.+:-]*$' | sort -u | \
-grep -vFxf "$SKIP_TMP" | \
-tee "$CACHE"
+    done | grep -E '^[a-z0-9][a-z0-9.+:-]*$'
+}
+
+SEEDS_CLEAN=$(grep -v '^#' "$SEEDS" | grep -v '^[[:space:]]*$')
+
+# Level 0: seeds themselves
+LEVEL0=$(printf '%s\n' "$SEEDS_CLEAN")
+
+# Level 1: direct deps of seeds
+LEVEL1=$(printf '%s\n' "$SEEDS_CLEAN" | get_deps)
+
+# Combine levels 0+1, dedup, apply skip filter
+L01=$(printf '%s\n%s\n' "$LEVEL0" "$LEVEL1" | \
+      grep -E '^[a-z0-9][a-z0-9.+:-]*$' | sort -u | \
+      grep -vFxf "$SKIP_TMP")
+
+printf 'resolve-deps: level 0+1 = %d packages\n' "$(printf '%s\n' "$L01" | wc -l)" >&2
+
+# Level 2: deps of level-1 packages not already in L01
+LEVEL2=$(printf '%s\n' "$LEVEL1" | grep -E '^[a-z0-9][a-z0-9.+:-]*$' | sort -u | get_deps)
+
+# Final closure: union of all levels, dedup, skip filter
+printf '%s\n%s\n' "$L01" "$LEVEL2" | \
+    grep -E '^[a-z0-9][a-z0-9.+:-]*$' | sort -u | \
+    grep -vFxf "$SKIP_TMP" | \
+    tee "$CACHE"
 
 printf 'resolve-deps: closure cached (%d packages)\n' "$(wc -l < "$CACHE")" >&2
