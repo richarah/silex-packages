@@ -56,8 +56,14 @@ fi
 
 printf 'resolve-deps: computing closure from seeds...\n' >&2
 
-# Use Python script for proper transitive closure computation
-# (apt-cache depends --recurse was including reverse dependencies)
-"$SCRIPT_DIR/resolve-closure.py" --seeds "$SEEDS" --skip "$SKIP" | tee "$CACHE"
+# Use apt-rdepends for proper transitive closure computation
+# Much faster and more reliable than Python subprocess calls
+which apt-rdepends >/dev/null 2>&1 || apt-get install -y apt-rdepends >/dev/null 2>&1
+
+# Process each seed and get recursive dependencies
+grep -v '^#' "$SEEDS" | grep -v '^[[:space:]]*$' | while IFS= read -r pkg; do
+    apt-rdepends --follow=Depends --print-state "$pkg" 2>/dev/null | grep "^  " | sed 's/^  //'
+    echo "$pkg"  # Include the seed itself
+done | sort -u | grep -vFxf "$SKIP_TMP" | tee "$CACHE"
 
 printf 'resolve-deps: closure cached (%d packages)\n' "$(wc -l < "$CACHE")" >&2
