@@ -30,23 +30,30 @@ RECOMPILE_OVERRIDE="$REPO_ROOT/config/recompile-override.list"
 REPACK_OVERRIDE="$REPO_ROOT/config/repack-override.list"
 CACHE="$REPO_ROOT/.classify-cache"
 SEEDS="$REPO_ROOT/config/seeds.list"
+CLOSURE_CACHE="$REPO_ROOT/.closure-cache"
 
 : > "$RECOMPILE_OUT"
 : > "$REPACK_OUT"
 
-# Use cache if it exists and is newer than seeds.list, recompile-override, and repack-override
+# Use cache if it exists and is newer than:
+# - seeds.list
+# - recompile-override.list
+# - repack-override.list
+# - .closure-cache (the actual package list being classified!)
 # This ensures cache is invalidated when ANY input changes
 CACHE_VALID=false
 if [ -f "$CACHE" ]; then
     CACHE_NEWER_THAN_SEEDS=false
     CACHE_NEWER_THAN_RECOMPILE=false
     CACHE_NEWER_THAN_REPACK=false
+    CACHE_NEWER_THAN_CLOSURE=false
 
     [ "$CACHE" -nt "$SEEDS" ] && CACHE_NEWER_THAN_SEEDS=true
     [ ! -f "$RECOMPILE_OVERRIDE" ] || [ "$CACHE" -nt "$RECOMPILE_OVERRIDE" ] && CACHE_NEWER_THAN_RECOMPILE=true
     [ ! -f "$REPACK_OVERRIDE" ] || [ "$CACHE" -nt "$REPACK_OVERRIDE" ] && CACHE_NEWER_THAN_REPACK=true
+    [ ! -f "$CLOSURE_CACHE" ] || [ "$CACHE" -nt "$CLOSURE_CACHE" ] && CACHE_NEWER_THAN_CLOSURE=true
 
-    if [ "$CACHE_NEWER_THAN_SEEDS" = true ] && [ "$CACHE_NEWER_THAN_RECOMPILE" = true ] && [ "$CACHE_NEWER_THAN_REPACK" = true ]; then
+    if [ "$CACHE_NEWER_THAN_SEEDS" = true ] && [ "$CACHE_NEWER_THAN_RECOMPILE" = true ] && [ "$CACHE_NEWER_THAN_REPACK" = true ] && [ "$CACHE_NEWER_THAN_CLOSURE" = true ]; then
         CACHE_VALID=true
     fi
 fi
