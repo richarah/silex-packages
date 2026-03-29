@@ -365,3 +365,4 @@ libuv1t64
 libssl-dev
 libreadline-dev
 libncurses-dev
+pkgconf

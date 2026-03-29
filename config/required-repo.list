@@ -85,3 +85,6 @@ libuv1t64
 libssl-dev
 libreadline-dev
 libncurses-dev
+cmake-data
+procps
+pkgconf
