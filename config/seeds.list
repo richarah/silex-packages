@@ -12,7 +12,6 @@ diffutils
 dpkg
 e2fsprogs
 findutils
-gcc-15-base
 gnu-coreutils
 grep
 gzip
