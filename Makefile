@@ -44,13 +44,13 @@ help:
 
 # ── Main targets ────────────────────────────────────────────
 
-build: compile-helpers build-x86 build-arm
+build: prep build-x86 build-arm
 	@printf "\n✓ Build complete (x86_64 + aarch64)\n"
 
-build-x86: prep-x86 repack-x86 recompile-x86 merge-x86
+build-x86: prep repack-x86 recompile-x86 merge-x86
 	@printf "✓ x86_64 build complete\n"
 
-build-arm: prep-arm repack-arm recompile-arm merge-arm
+build-arm: prep repack-arm recompile-arm merge-arm
 	@printf "✓ aarch64 build complete\n"
 
 # ── Compile helper binaries (must run once, before parallel phases) ────
@@ -61,22 +61,19 @@ compile-helpers:
 		{ printf 'ERROR: failed to compile apk-tar.c\n' >&2; exit 1; }
 	@printf "✓ Helper binaries compiled\n"
 
-# ── Prep phase ────────────────────────────────────────────
+# ── Prep phase (runs ONCE before both arch builds) ────────────────────
 
-prep: prep-x86 prep-arm
-	@printf "✓ Prep complete\n"
-
-prep-x86: compile-helpers
-	@mkdir -p "$(REPO_ROOT)/x86_64"
+prep: compile-helpers
+	@mkdir -p "$(REPO_ROOT)/x86_64" "$(REPO_ROOT)/aarch64"
 	@printf "[prep] Generating recompile layers...\n"
 	@cd "$(REPO_ROOT)" && ./scripts/gen-layers.sh
-	@printf "[prep] x86_64 preprocessing...\n"
+	@printf "[prep] Computing package lists...\n"
 	@cd "$(REPO_ROOT)" && ARCH=x86_64 ./scripts/prep.sh
+	@printf "✓ Prep complete\n"
 
-prep-arm: compile-helpers
-	@mkdir -p "$(REPO_ROOT)/aarch64"
-	@printf "[prep] aarch64 preprocessing...\n"
-	@cd "$(REPO_ROOT)" && ARCH=aarch64 ./scripts/prep.sh
+# Kept for backwards compat
+prep-x86: prep
+prep-arm: prep
 
 # ── Repack phase - all chunks in parallel ────────────────────
 

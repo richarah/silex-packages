@@ -21,7 +21,6 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SEEDS="$REPO_ROOT/config/seeds.list"
 SKIP="$REPO_ROOT/config/skip.list"
 CACHE="$REPO_ROOT/.closure-cache"
-CLOSURE_SCRIPT="$SCRIPT_DIR/resolve-closure.py"
 
 [ -f "$SEEDS" ] || { printf 'resolve-deps: %s not found\n' "$SEEDS" >&2; exit 1; }
 
@@ -29,22 +28,15 @@ SKIP_TMP=$(mktemp)
 trap 'rm -f "$SKIP_TMP"' EXIT INT TERM
 
 if [ -f "$SKIP" ]; then
-    grep -v '^#' "$SKIP" | grep -v '^[[:space:]]*$' > "$SKIP_TMP"
+    grep -v '^#' "$SKIP" | grep -v '^[[:space:]]*$' | awk '{print $1}' > "$SKIP_TMP" || true
 fi
 
-# Use cache if it exists and is newer than ALL of:
-# - seeds.list
-# - skip.list
-# - resolve-closure.py (the script itself)
-# If any are newer than cache, recompute to ensure correctness
+# Use cache if it exists, is non-empty, and is newer than seeds.list and skip.list
 CACHE_VALID=false
-if [ -f "$CACHE" ] && [ "$CACHE" -nt "$SEEDS" ]; then
+if [ -f "$CACHE" ] && [ "$(wc -l < "$CACHE")" -gt 0 ] && [ "$CACHE" -nt "$SEEDS" ]; then
     # Also check if skip.list has changed
     if [ ! -f "$SKIP" ] || [ "$CACHE" -nt "$SKIP" ]; then
-        # Also check if the Python script has changed
-        if [ ! -f "$CLOSURE_SCRIPT" ] || [ "$CACHE" -nt "$CLOSURE_SCRIPT" ]; then
-            CACHE_VALID=true
-        fi
+        CACHE_VALID=true
     fi
 fi
 
@@ -57,8 +49,8 @@ fi
 printf 'resolve-deps: computing closure from seeds...\n' >&2
 
 # Get seeds + their DIRECT dependencies only (no deep recursion)
-# This avoids including 1000+ theoretical packages where 90% fail to build
-# Instead get ~200-300 packages that actually exist and work
+# Strips version constraints (e.g. "libc6 (>= 2.25)" -> "libc6")
+# Filters to valid Debian package name format only (no virtuals, no garbage)
 {
     # Include seeds themselves
     grep -v '^#' "$SEEDS" | grep -v '^[[:space:]]*$'
@@ -67,12 +59,12 @@ printf 'resolve-deps: computing closure from seeds...\n' >&2
     grep -v '^#' "$SEEDS" | grep -v '^[[:space:]]*$' | while IFS= read -r pkg; do
         apt-cache depends --no-recommends --no-suggests \
             --no-conflicts --no-breaks --no-replaces --no-enhances \
-            "$pkg" 2>/dev/null | grep '^  ' | sed 's/.*: //'
+            "$pkg" 2>/dev/null \
+            | grep '^  [A-Z]' \
+            | sed 's/.*: //; s/ (.*//'
     done
-} | sort -u | \
+} | grep -E '^[a-z0-9][a-z0-9.+:-]*$' | sort -u | \
 grep -vFxf "$SKIP_TMP" | \
-xargs -P "$(nproc)" -n 1 sh -c \
-    'apt-cache show "$1" >/dev/null 2>&1 && printf "%s\n" "$1"' sh | \
-sort -u | tee "$CACHE"
+tee "$CACHE"
 
 printf 'resolve-deps: closure cached (%d packages)\n' "$(wc -l < "$CACHE")" >&2
