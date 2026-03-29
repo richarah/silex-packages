@@ -14,12 +14,34 @@ apt-cache dumpavail | awk '
   /^Section: / { section = $2 }
   /^$/ {
     # Skip bloat sections
-    if (section ~ /^(games|doc|electronics|hamradio|science\/electronics)$/) next
+    if (section ~ /^(games|doc|electronics|hamradio|science\/electronics|tex)$/) next
 
     # Skip bloat package patterns
     if (pkg ~ /^(libreoffice|thunderbird|firefox|chromium|gimp|inkscape|blender|vlc|kdenlive)/) next
     if (pkg ~ /(-games|-game-data|^game-)/) next
     if (pkg ~ /^(gnome-games|kde-games|xscreensaver)/) next
+
+    # Skip TeX/LaTeX packages (HUGE!)
+    if (pkg ~ /^texlive-/) next
+    if (pkg ~ /^tex-/) next
+    if (pkg ~ /^context$/) next
+    if (pkg ~ /^latex-/) next
+
+    # Skip desktop environments and their apps
+    if (pkg ~ /^kde-full|^kubuntu-|^plasma-desktop/) next
+    if (pkg ~ /^gnome-shell|^ubuntu-desktop|^xubuntu-|^lubuntu-/) next
+
+    # Skip multimedia creation tools
+    if (pkg ~ /^(krita|obs-studio|audacity|ardour|rosegarden)/) next
+
+    # Skip CAD/3D modeling
+    if (pkg ~ /^(freecad|openscad|meshlab|sweethome3d)/) next
+
+    # Skip scientific visualization (huge)
+    if (pkg ~ /^(paraview|visit|mayavi)/) next
+
+    # Skip IDEs (except lightweight editors)
+    if (pkg ~ /^(eclipse|netbeans|intellij-|android-studio)/) next
 
     # Skip documentation packages (except essential ones)
     if (pkg ~ /-doc$/ && pkg !~ /^(man-db|manpages)/) next
