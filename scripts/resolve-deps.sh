@@ -49,25 +49,8 @@ fi
 
 printf 'resolve-deps: computing closure from seeds...\n' >&2
 
-# Expand dependency closure for each seed, deduplicate, filter skip list,
-# then verify each package has a real binary in parallel (apt-cache show).
-grep -v '^#' "$SEEDS" | grep -v '^[[:space:]]*$' | while IFS= read -r pkg; do
-    apt-cache depends \
-        --recurse \
-        --no-recommends \
-        --no-suggests \
-        --no-conflicts \
-        --no-breaks \
-        --no-replaces \
-        --no-enhances \
-        "$pkg" 2>/dev/null \
-    | grep '^[[:alnum:]]' \
-    | grep -v '^<'
-done \
-| sort -u \
-| grep -vFxf "$SKIP_TMP" \
-| xargs -P "$(nproc)" -n 1 sh -c \
-    'apt-cache show "$1" >/dev/null 2>&1 && printf "%s\n" "$1"' sh \
-| sort -u | tee "$CACHE"
+# Use Python script for proper transitive closure computation
+# (apt-cache depends --recurse was including reverse dependencies)
+"$SCRIPT_DIR/resolve-closure.py" --seeds "$SEEDS" --skip "$SKIP" | tee "$CACHE"
 
 printf 'resolve-deps: closure cached (%d packages)\n' "$(wc -l < "$CACHE")" >&2
