@@ -1,373 +1,304 @@
-# Priority: required (essential system packages)
+# Curated seeds list for 4GB repository
+# Focus: Essential packages that users will actually need in containers
+# Strategy: Hand-picked seeds that expand naturally via dependency closure
+# to ~2000-3000 packages within 4GB
+
+# ============================================
+# CORE SYSTEM (always needed)
+# ============================================
 base-files
 base-passwd
 bash
-bsdutils
 coreutils
-coreutils-from-uutils
 dash
-debconf
 debianutils
 diffutils
 dpkg
-e2fsprogs
 findutils
-gnu-coreutils
 grep
 gzip
 hostname
-init-system-helpers
-libacl1
-libattr1
-libaudit-common
-libaudit1
-libblkid1
-libcurl4t64
-libcurl3t64-gnutls
-libbsd0
-libbz2-1.0
-libc-bin
 libc6
-libcap-ng0
-libcap2
-libcom-err2
-libcrypt1
-libdb5.3t64
-libdebconfclient0
-libext2fs2t64
-libgcc-s1
-libgmp10
-liblastlog2-2
-liblzma5
-libmd0
-libmount1
-libncursesw6
-libpam-modules
-libpam-modules-bin
-libpam-runtime
-libpam0g
-libpcre2-8-0
-libproc2-0
-libselinux1
-libsemanage-common
-libsemanage2
-libsepol2
-libsmartcols1
-libsqlite3-0
-libss2
-libssl3t64
-libsystemd0
-libtinfo6
-libudev1
-libuuid1
-libzstd1
-login
-login.defs
-logsave
-mawk
-mount
-ncurses-base
-ncurses-bin
-openssl-provider-legacy
-passwd
-perl-base
-procps
-rust-coreutils
 sed
-sensible-utils
-sysvinit-utils
 tar
 util-linux
 zlib1g
 
-# Priority: standard (standard utilities and tools)
-apparmor
-bash-completion
-bind9-dnsutils
-bind9-host
-bind9-libs
-bsdextrautils
-busybox-static
-command-not-found
-cpio
-cron
-cron-daemon-common
-dmidecode
-dpkg-dev
-dosfstools
-ed
-file
-friendly-recovery
-ftp
-fuse3
-git-man
-gettext-base
-groff-base
-hdparm
-ibverbs-providers
-inetutils-telnet
-info
-install-info
-iptables
-iputils-tracepath
-libcbor0.10
-libdrm-common
-libdrm2
-libevdev2
-libfido2-1
-libfuse3-4
-libgdbm6t64
-libgpm2
-libibverbs1
-libip4tc2
-libip6tc2
-libjansson4
-libjemalloc2
-liblmdb0
-liblsof0
-libmagic-mgc
-libmagic1t64
-libmaxminddb0
+# ============================================
+# BUILD ESSENTIALS (developers expect these)
+# ============================================
+build-essential
+gcc
+g++
+make
+cmake
+autoconf
+automake
+pkg-config
+m4
+flex
+bison
+binutils
+libtool
+patch
+
+# ============================================
+# DEVELOPMENT LIBRARIES (runtime + dev)
+# ============================================
+libssl-dev
+libssl3
+libcurl4-openssl-dev
+libcurl4
+libreadline-dev
+libreadline8
+libncurses-dev
 libncurses6
-libnetfilter-conntrack3
-libnfnetlink0
-libnftables1
-libnftnl11
-libnghttp2-14
-libnl-3-200
-libnl-route-3-200
-libntfs-3g89t64
-libnuma1
-libparted2t64
-libpcap0.8t64
-libpci3
-libpipeline1
-libplymouth5
-libpng16-16t64
-libpsl5t64
-libsensors-config
-libsensors5
-libtraceevent1
-libtraceevent1-plugin
-libtracefs1
-libuchardet0
-liburcu8t64
-libusb-1.0-0
-libuv1t64
-libx11-6
-libx11-data
-libxau6
-libxcb1
-libxdmcp6
-libxext6
-libxkbcommon0
-libxmuu1
-lshw
-lsof
-man-db
-manpages
-mtr-tiny
-nano
-nftables
-node-corepack
-ntfs-3g
-numactl
+libffi-dev
+libffi8
+libyaml-dev
+libyaml-0-2
+libpcre2-dev
+libpcre2-8-0
+libjpeg-turbo-progs
+libpng-dev
+libz-dev
+libxml2-dev
+libxml2
+libxslt1-dev
+libxslt1.1
+
+# ============================================
+# INTERPRETERS & RUNTIMES (multiple languages)
+# ============================================
+python3
+python3-dev
+python3-pip
+python3-venv
+python3-minimal
+
+perl
+perl-base
+libperl5.40
+
+ruby
+ruby-dev
+
+php-cli
+php-dev
+php-common
+
+nodejs
+npm
+
+tcl
+tcl-dev
+
+# ============================================
+# VERSION CONTROL & SOURCE
+# ============================================
+git
+git-man
+subversion
+mercurial
+cvs
+bazaar
+
+# ============================================
+# NETWORK & HTTP TOOLS
+# ============================================
+curl
+wget
 openssh-client
-parted
-pci.ids
-pciutils
-plymouth
-plymouth-theme-ubuntu-text
-powermgmt-base
-psmisc
-publicsuffix
-python3-commandnotfound
-python3-distro-info
-python3-distupgrade
-python3-gdbm
-python3-update-manager
-python3.13-gdbm
+openssh-server
+openssh-sftp-server
+netcat-openbsd
+telnet
 rsync
+ca-certificates
+openssl
+
+# ============================================
+# PACKAGE MANAGEMENT
+# ============================================
+apt
+dpkg-dev
+devscripts
+debhelper
+dh-make
+equivs
+
+# ============================================
+# TEXT EDITORS & PAGERS
+# ============================================
+vim
+nano
+less
+ed
+
+# ============================================
+# COMPRESSION & ARCHIVES
+# ============================================
+bzip2
+xz-utils
+unzip
+zip
+p7zip-full
+rar
+gzip
+
+# ============================================
+# SYSTEM UTILITIES
+# ============================================
+file
+findutils
+grep
+sed
+gawk
+mawk
+cpio
+which
+time
+tmux
 screen
 strace
-sysstat
-tcpdump
-telnet
-time
-tnftp
-trace-cmd
-ubuntu-release-upgrader-core
-ubuntu-standard
-ufw
-update-manager-core
-usb.ids
-usbutils
-uuid-runtime
+lsof
+procps
+psmisc
+htop
+iotop
+iftop
+nethogs
+nmap
+socat
+curl
 wget
-xauth
-xz-utils
 
-# Priority: important (important for typical systems)
-adduser
-apt
-ca-certificates
-chrony
-console-setup
-console-setup-linux
-dbus
-dbus-bin
-dbus-daemon
-dbus-session-bus-common
-dbus-system-bus-common
-dbus-user-session
-debconf-i18n
-dhcpcd-base
-distro-info
-distro-info-data
-dmsetup
-eject
-ethtool
-gir1.2-girepository-2.0
-gir1.2-glib-2.0
-gpgv
-init
-iproute2
-iputils-ping
-iso-codes
-kbd
-keyboard-configuration
-kmod
-krb5-locales
+# ============================================
+# SHELLS & TERMINAL
+# ============================================
+bash
+zsh
+fish
+ksh
+
+# ============================================
+# DOCUMENTATION
+# ============================================
+man-db
+manpages
+info
 less
-libapparmor1
-libapt-pkg7.0
-libatomic1
-libbpf1
-libcap2-bin
-libcryptsetup12
-libdbus-1-3
-libdevmapper1.02.1
-libedit2
-libelf1t64
-libestr0
-liberror-perl
-libexpat1
-libfastjson4
-libffi8
-libfribidi0
-libgcrypt20
-libgirepository-1.0-1
-libglib2.0-0t64
-libglib2.0-data
-libnode115
-libgnutls30t64
-libgpg-error-l10n
-libgpg-error0
-libgssapi-krb5-2
-libhogweed6t64
-libidn2-0
-libjson-c5
-libk5crypto3
-libkeyutils1
-libkmod2
-libkrb5-3
-libkrb5support0
-liblocale-gettext-perl
-liblz4-1
-libmnl0
-libnetplan1
-libnettle8t64
-libnewt0.52
-libnss-systemd
-libp11-kit0
-libpam-cap
-libpam-systemd
-libpopt0
-libpython3-stdlib
-libpython3.13-minimal
-libpython3.13-stdlib
-libreadline8t64
-libseccomp2
-libslang2
-libstdc++6
-libsystemd-shared
-libtasn1-6
-libtext-charwidth-perl
-libtext-iconv-perl
-libtext-wrapi18n-perl
-libtirpc-common
-libtirpc3t64
-libunistring5
-libxml2-16
-libxtables12
-libxxhash0
-libyaml-0-2
-linux-sysctl-defaults
-locales
-logrotate
-lsb-release
-media-types
-netbase
-netcat-openbsd
-netplan-generator
-netplan.io
-networkd-dispatcher
-openssl
-python-apt-common
-python3
-python3-apt
-python3-cffi-backend
-python3-dbus
-python3-gi
-python3-linkify-it
-python3-markdown-it
-python3-mdurl
-python3-minimal
-python3-netplan
-python3-pygments
-python3-rich
-python3-uc-micro
-python3-yaml
-python3.13
-python3.13-minimal
-readline-common
-rsyslog
-shared-mime-info
+
+# ============================================
+# DEBUGGERS & PROFILERS
+# ============================================
+gdb
+lldb
+valgrind
+strace
+
+# ============================================
+# BUILD TOOLS & COMPILERS
+# ============================================
+clang
+llvm
+rustc
+cargo
+golang-go
+default-jdk
+default-jdk-headless
+
+# ============================================
+# TESTING & QUALITY
+# ============================================
+cppcheck
+shellcheck
+pylint
+flake8
+
+# ============================================
+# CONTAINERIZATION (common in containers)
+# ============================================
+docker.io
+podman
+containerd
+
+# ============================================
+# COMMON LIBRARIES (popular deps)
+# ============================================
+libgdbm6
+libuuid1
+libpq5
+libmysqlclient21
+libredis-simple-perl
+libjson-perl
+libwww-perl
+libipc-run-perl
+libdbi-perl
+
+# ============================================
+# SYSTEM ADMIN & MONITORING
+# ============================================
 sudo
 sudo-rs
 systemd
-systemd-cryptsetup
-systemd-hwe-hwdb
-systemd-resolved
 systemd-sysv
-tzdata
-ubuntu-keyring
-ubuntu-minimal
-ubuntu-pro-client
-ubuntu-pro-client-l10n
-ucf
 udev
-vim-common
-vim-tiny
-whiptail
-xdg-user-dirs
-xkb-data
-xxd
+dbus
+acl
+attr
+pam
+shadow
+passwdqc
+cracklib-runtime
+joe-lee-dictionaries
 
-# Priority: optional/extra (development and useful tools)
-build-essential
-clang
-cmake
-git
+# ============================================
+# NETWORKING
+# ============================================
+net-tools
+iproute2
+iputils-ping
+iputils-tracepath
+bind9-dnsutils
+dnsmasq
+nginx
+apache2
 curl
 wget
+
+# ============================================
+# DATABASE CLIENTS
+# ============================================
+postgresql-client
+mariadb-client
+mysql-client
+redis-cli
+sqlite3
+
+# ============================================
+# CONFIG & PARSING
+# ============================================
 jq
-vim
-nano
-python3
-python3-dev
-nodejs
-ruby
-perl
-php-cli
-tcl
+yq
+xmlstarlet
+toml-cli
+config-package-dev
+
+# ============================================
+# MISCELLANEOUS USEFUL TOOLS
+# ============================================
+enscript
+ghostscript
+imagemagick
+graphicsmagick
+ffmpeg
+sox
+mediainfo
+exiftool
+pandoc
+asciidoc
+docbook-to-man
+help2man
+doxygen
+sphinx-common

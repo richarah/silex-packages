@@ -70,13 +70,13 @@ prep-x86: compile-helpers
 	@mkdir -p "$(REPO_ROOT)/x86_64"
 	@printf "[prep] Generating recompile layers...\n"
 	@cd "$(REPO_ROOT)" && ./scripts/gen-layers.sh
-	@printf "[prep] x86_64 preprocessing (direct mode)...\n"
-	@cd "$(REPO_ROOT)" && ARCH=x86_64 ./scripts/prep-direct.sh
+	@printf "[prep] x86_64 preprocessing...\n"
+	@cd "$(REPO_ROOT)" && ARCH=x86_64 ./scripts/prep.sh
 
 prep-arm: compile-helpers
 	@mkdir -p "$(REPO_ROOT)/aarch64"
-	@printf "[prep] aarch64 preprocessing (direct mode)...\n"
-	@cd "$(REPO_ROOT)" && ARCH=aarch64 ./scripts/prep-direct.sh
+	@printf "[prep] aarch64 preprocessing...\n"
+	@cd "$(REPO_ROOT)" && ARCH=aarch64 ./scripts/prep.sh
 
 # ── Repack phase - all chunks in parallel ────────────────────
 
