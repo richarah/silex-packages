@@ -104,17 +104,15 @@ DL=$(mktemp -d)
 RESULT=repack
 if ( cd "$DL" && apt-get download "$pkg" -q 2>/dev/null ); then
     DEB=$(ls "$DL"/*.deb 2>/dev/null | head -1)
-    if [ -f "$DEB" ]; then
-        # Skip symlink lines (first char 'l') — their $NF is the symlink target,
-        # which may falsely match \.so\.[0-9] (e.g. libssl.so -> libssl.so.3).
-        if dpkg-deb -c "$DEB" 2>/dev/null \
-                | awk '$1 !~ /^l/ {print $NF}' \
-                | grep -qE '\.so\.[0-9]'; then
-            RESULT=recompile
-        fi
-    else
+    if [ ! -f "$DEB" ]; then
         printf 'classify: %s: no .deb found after download, defaulting to repack\n' "$pkg" >&2
     fi
+    # All auto-detected packages default to repack regardless of .so.N files.
+    # Packages needing recompilation must be listed explicitly in
+    # config/recompile-override.list (phase 1 above). Auto-detecting .so.N and
+    # classifying as recompile caused packages to be lost when recompile.sh
+    # failed (no fallback). Defaulting to repack ensures all closure packages
+    # make it into the repo as Debian binaries.
 else
     printf 'classify: %s: apt-get download failed, defaulting to repack\n' "$pkg" >&2
 fi

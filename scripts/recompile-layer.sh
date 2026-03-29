@@ -20,6 +20,9 @@ grep "^${LAYER} " "$CONF" | awk '{print $2}' | while read -r pkg; do
     if ls "$REPO_DIR/${pkg}-"[0-9]*.apk >/dev/null 2>&1; then
         printf 'cached  %s\n' "$pkg"
     else
-        "$SCRIPT_DIR/recompile.sh" "$pkg" || printf 'WARNING: recompile failed for %s\n' "$pkg" >&2
+        "$SCRIPT_DIR/recompile.sh" "$pkg" || {
+            printf 'WARNING: recompile failed for %s, falling back to repack\n' "$pkg" >&2
+            "$SCRIPT_DIR/repack.sh" "$pkg" || printf 'WARNING: repack fallback also failed for %s\n' "$pkg" >&2
+        }
     fi
 done
