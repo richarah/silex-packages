@@ -10,11 +10,9 @@ mawk
 original-awk
 diffutils
 mount
-util-linux
 hostname
 login
 passwd
-libc6
 libc-bin
 libgcc-s1
 libstdc++6
@@ -45,19 +43,9 @@ binutils-common
 binutils-x86-64-linux-gnu
 gcc-11
 gcc-12
-gcc-13
-gcc-14
-gcc-15
-gcc-x86-64-linux-gnu
 gcc-11-base
 gcc-12-base
-gcc-13-base
-gcc-14-base
-gcc-15-base
 g++-12
-g++-13
-g++-14
-g++-15
 cpp
 libbinutils
 autoconf
@@ -70,7 +58,6 @@ flex
 make-guile
 
 # Debian system files (safe to include, just metadata)
-base-files
 base-passwd
 debianutils
 perl-base
@@ -80,11 +67,8 @@ sysvinit-utils
 
 # Missing recommended packages and dev headers (not in hard dependencies but needed for compat)
 npm
-librhash1
-libuv1t64
 libssl-dev
 libreadline-dev
 libncurses-dev
 cmake-data
 procps
-pkgconf
