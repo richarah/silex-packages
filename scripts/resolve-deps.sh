@@ -31,8 +31,17 @@ if [ -f "$SKIP" ]; then
     grep -v '^#' "$SKIP" | grep -v '^[[:space:]]*$' > "$SKIP_TMP"
 fi
 
-# Use cache if it exists and is newer than seeds.list
+# Use cache if it exists and is newer than seeds.list AND skip.list
+# If either config file is newer than cache, recompute to ensure correctness
+CACHE_VALID=false
 if [ -f "$CACHE" ] && [ "$CACHE" -nt "$SEEDS" ]; then
+    # Also check if skip.list has changed
+    if [ ! -f "$SKIP" ] || [ "$CACHE" -nt "$SKIP" ]; then
+        CACHE_VALID=true
+    fi
+fi
+
+if [ "$CACHE_VALID" = true ]; then
     printf 'resolve-deps: using cached closure (%s)\n' "$(wc -l < "$CACHE")" >&2
     cat "$CACHE"
     exit 0

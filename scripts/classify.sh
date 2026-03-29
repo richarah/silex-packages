@@ -34,8 +34,24 @@ SEEDS="$REPO_ROOT/config/seeds.list"
 : > "$RECOMPILE_OUT"
 : > "$REPACK_OUT"
 
-# Use cache if it exists and is newer than seeds.list
-if [ -f "$CACHE" ] && [ "$CACHE" -nt "$SEEDS" ]; then
+# Use cache if it exists and is newer than seeds.list, recompile-override, and repack-override
+# This ensures cache is invalidated when ANY input changes
+CACHE_VALID=false
+if [ -f "$CACHE" ]; then
+    CACHE_NEWER_THAN_SEEDS=false
+    CACHE_NEWER_THAN_RECOMPILE=false
+    CACHE_NEWER_THAN_REPACK=false
+
+    [ "$CACHE" -nt "$SEEDS" ] && CACHE_NEWER_THAN_SEEDS=true
+    [ ! -f "$RECOMPILE_OVERRIDE" ] || [ "$CACHE" -nt "$RECOMPILE_OVERRIDE" ] && CACHE_NEWER_THAN_RECOMPILE=true
+    [ ! -f "$REPACK_OVERRIDE" ] || [ "$CACHE" -nt "$REPACK_OVERRIDE" ] && CACHE_NEWER_THAN_REPACK=true
+
+    if [ "$CACHE_NEWER_THAN_SEEDS" = true ] && [ "$CACHE_NEWER_THAN_RECOMPILE" = true ] && [ "$CACHE_NEWER_THAN_REPACK" = true ]; then
+        CACHE_VALID=true
+    fi
+fi
+
+if [ "$CACHE_VALID" = true ]; then
     printf 'classify: using cached classification\n' >&2
     awk -v recompile="$RECOMPILE_OUT" -v repack="$REPACK_OUT" '
         /^recompile/ {print $2 > recompile}
