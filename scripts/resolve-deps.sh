@@ -21,6 +21,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SEEDS="$REPO_ROOT/config/seeds.list"
 SKIP="$REPO_ROOT/config/skip.list"
 CACHE="$REPO_ROOT/.closure-cache"
+CLOSURE_SCRIPT="$SCRIPT_DIR/resolve-closure.py"
 
 [ -f "$SEEDS" ] || { printf 'resolve-deps: %s not found\n' "$SEEDS" >&2; exit 1; }
 
@@ -31,13 +32,19 @@ if [ -f "$SKIP" ]; then
     grep -v '^#' "$SKIP" | grep -v '^[[:space:]]*$' > "$SKIP_TMP"
 fi
 
-# Use cache if it exists and is newer than seeds.list AND skip.list
-# If either config file is newer than cache, recompute to ensure correctness
+# Use cache if it exists and is newer than ALL of:
+# - seeds.list
+# - skip.list
+# - resolve-closure.py (the script itself)
+# If any are newer than cache, recompute to ensure correctness
 CACHE_VALID=false
 if [ -f "$CACHE" ] && [ "$CACHE" -nt "$SEEDS" ]; then
     # Also check if skip.list has changed
     if [ ! -f "$SKIP" ] || [ "$CACHE" -nt "$SKIP" ]; then
-        CACHE_VALID=true
+        # Also check if the Python script has changed
+        if [ ! -f "$CLOSURE_SCRIPT" ] || [ "$CACHE" -nt "$CLOSURE_SCRIPT" ]; then
+            CACHE_VALID=true
+        fi
     fi
 fi
 
