@@ -22,6 +22,8 @@ libattr1
 libaudit-common
 libaudit1
 libblkid1
+libcurl4t64
+libcurl3t64-gnutls
 libbsd0
 libbz2-1.0
 libc-bin
@@ -91,12 +93,14 @@ cpio
 cron
 cron-daemon-common
 dmidecode
+dpkg-dev
 dosfstools
 ed
 file
 friendly-recovery
 ftp
 fuse3
+git-man
 gettext-base
 groff-base
 hdparm
@@ -165,6 +169,7 @@ manpages
 mtr-tiny
 nano
 nftables
+node-corepack
 ntfs-3g
 numactl
 openssh-client
@@ -245,6 +250,7 @@ libdevmapper1.02.1
 libedit2
 libelf1t64
 libestr0
+liberror-perl
 libexpat1
 libfastjson4
 libffi8
@@ -253,6 +259,7 @@ libgcrypt20
 libgirepository-1.0-1
 libglib2.0-0t64
 libglib2.0-data
+libnode115
 libgnutls30t64
 libgpg-error-l10n
 libgpg-error0
