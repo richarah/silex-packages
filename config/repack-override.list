@@ -7,11 +7,6 @@
 # benefit over the Debian binary for our use case (opencv build dep).
 libtbb-dev
 libtbb2
-llvm-13-linker-tools
-llvm-14-linker-tools
-llvm-15-linker-tools
-llvm-16-linker-tools
-llvm-19-linker-tools
 libxdmcp6
 libxext6
 libxfixes3
@@ -34,27 +29,6 @@ libyaml-0-2
 ncurses-bin
 libz3-4
 libzmq5
-libclang-cpp13
-libclang-cpp14
-libclang-cpp15
-libclang-cpp16
-libclang-cpp19
-libclang1-13
-libclang1-14
-libclang1-15
-libclang1-16
-libclang1-19
-libllvm13
-libllvm14
-libllvm15
-libllvm16
-libllvm19
-llvm-13-linker-tools
-llvm-14-linker-tools
-llvm-15-linker-tools
-llvm-16-linker-tools
-llvm-19-linker-tools
-
 # Silex compat test packages (2026-03-28)
 bison
 flex
@@ -90,13 +64,4 @@ binutils
 make
 gcc-11
 gcc-12
-gcc-13
-gcc-13-x86-64-linux-gnu
-gcc-14
-gcc-14-x86-64-linux-gnu
-gcc-15
-gcc-15-x86-64-linux-gnu
 g++-12
-g++-13
-g++-14
-g++-15
