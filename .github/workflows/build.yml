@@ -22,7 +22,7 @@ jobs:
     name: Build (x86_64 + aarch64)
     runs-on: [self-hosted, Linux, X64]
     container:
-      image: ubuntu:24.04
+      image: debian:bookworm
     steps:
       - uses: actions/checkout@v5
 
@@ -52,9 +52,8 @@ jobs:
 
       - name: Enable deb-src
         run: |
-          # Ubuntu 24.04 uses /etc/apt/sources.list.d/ubuntu.sources (DEB822 format)
-          if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
-            sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/ubuntu.sources
+          if [ -f /etc/apt/sources.list.d/debian.sources ]; then
+            sed -i 's/^Types: deb$/Types: deb deb-src/' /etc/apt/sources.list.d/debian.sources
           elif [ -f /etc/apt/sources.list ]; then
             grep '^deb ' /etc/apt/sources.list | sed 's/^deb /deb-src /' >> /etc/apt/sources.list
           fi
