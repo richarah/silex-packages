@@ -29,13 +29,33 @@ mkdir -p "$REPO_DIR"
 # Cap build parallelism to avoid OOM.
 # x86_64 and aarch64 recompile in parallel, and -flto=thin LTO linking
 # can spike to 1-2 GB per thread. Using nproc uncapped caused a 107 GB OOM.
+# Dynamic calculation: allow 2GB RAM per job, cap at min(nproc/2, 8, available_mem/4GB).
 # Allow overriding via RECOMPILE_JOBS env var for tuning.
 if [ -n "$RECOMPILE_JOBS" ]; then
     JOBS="$RECOMPILE_JOBS"
 else
-    JOBS=$(( $(nproc) / 2 ))
-    [ "$JOBS" -gt 8 ] && JOBS=8
+    # Get available memory in GB (MemAvailable from /proc/meminfo)
+    MEM_KB=$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || echo "16777216")
+    MEM_GB=$(( MEM_KB / 1048576 ))
+
+    # Each job can spike to 2GB during LTO linking, x86+arm run in parallel = 2x jobs
+    # So limit to available_mem / 4GB to leave headroom
+    MEM_JOBS=$(( MEM_GB / 4 ))
+    [ "$MEM_JOBS" -lt 1 ] && MEM_JOBS=1
+
+    # Cap at nproc/2 and absolute max of 8
+    CPU_JOBS=$(( $(nproc) / 2 ))
+    [ "$CPU_JOBS" -gt 8 ] && CPU_JOBS=8
+
+    # Use the lower of memory and CPU limits
+    JOBS="$MEM_JOBS"
+    [ "$CPU_JOBS" -lt "$JOBS" ] && JOBS="$CPU_JOBS"
     [ "$JOBS" -lt 1 ] && JOBS=1
+
+    # Warn if we're memory-constrained
+    if [ "$MEM_GB" -lt 16 ]; then
+        printf "recompile: WARNING: Only %d GB available, using -j%d (may be slow)\n" "$MEM_GB" "$JOBS" >&2
+    fi
 fi
 
 WORK=$(mktemp -d)
