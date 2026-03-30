@@ -25,7 +25,11 @@ do_index() {
     IDX_TMP=$(mktemp -d)
     tar -xzf "${DIR}/APKINDEX.tar.gz" -C "$IDX_TMP"
     if [ -f "$IDX_TMP/APKINDEX" ]; then
-        sed -i '/^D:/ s/:[a-z][a-z0-9]*//g' "$IDX_TMP/APKINDEX"
+        # Strip only :any/:native Debian arch qualifiers from dep tokens.
+        # Pattern :[a-z][a-z0-9]* is too broad — it also strips the first
+        # dep name itself (D:libfoo → D). Match the suffix only when followed
+        # by a space (mid-list) or end-of-line (last dep).
+        sed -i '/^D:/ { s/:any / /g; s/:any$//; s/:native / /g; s/:native$//; }' "$IDX_TMP/APKINDEX"
         TARFILES="APKINDEX"
         [ -f "$IDX_TMP/DESCRIPTION" ] && TARFILES="$TARFILES DESCRIPTION"
         # shellcheck disable=SC2086
