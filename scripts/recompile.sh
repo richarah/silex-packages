@@ -26,6 +26,18 @@ REPO_ROOT="$(cd "$SCRIPTS_DIR/.." && pwd)"
 
 mkdir -p "$REPO_DIR"
 
+# Cap build parallelism to avoid OOM.
+# x86_64 and aarch64 recompile in parallel, and -flto=thin LTO linking
+# can spike to 1-2 GB per thread. Using nproc uncapped caused a 107 GB OOM.
+# Allow overriding via RECOMPILE_JOBS env var for tuning.
+if [ -n "$RECOMPILE_JOBS" ]; then
+    JOBS="$RECOMPILE_JOBS"
+else
+    JOBS=$(( $(nproc) / 2 ))
+    [ "$JOBS" -gt 8 ] && JOBS=8
+    [ "$JOBS" -lt 1 ] && JOBS=1
+fi
+
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT INT TERM
 
@@ -67,7 +79,7 @@ if [ -f configure ]; then
     else
         ./configure --prefix=/usr
     fi
-    make -j"$(nproc)"
+    make -j"$JOBS"
     make install DESTDIR="$STAGING"
 
 elif [ -f CMakeLists.txt ]; then
@@ -82,7 +94,7 @@ elif [ -f CMakeLists.txt ]; then
         -DCMAKE_EXE_LINKER_FLAGS="$LDFLAGS" \
         -DCMAKE_SHARED_LINKER_FLAGS="$LDFLAGS" \
         -DCMAKE_MODULE_LINKER_FLAGS="$LDFLAGS"
-    ninja -C _build -j"$(nproc)"
+    ninja -C _build -j"$JOBS"
     DESTDIR="$STAGING" ninja -C _build install
 
 elif [ -f meson.build ]; then
@@ -100,7 +112,7 @@ elif [ -f meson.build ]; then
              --libdir=lib \
              --buildtype=release \
              -Db_lto=true; }
-    ninja -C _build -j"$(nproc)"
+    ninja -C _build -j"$JOBS"
     DESTDIR="$STAGING" ninja -C _build install
 
 else
@@ -110,7 +122,7 @@ else
     # dpkg-buildpackage puts output in the parent directory ($WORK).
     export DEB_CC="$CC" DEB_CXX="${CXX:-$CC}"
     DEB_BUILD_OPTIONS="nocheck nostrip" \
-        dpkg-buildpackage -b -uc -us -j"$(nproc)"
+        dpkg-buildpackage -b -uc -us -j"$JOBS"
 
     # Extract each resulting .deb (skip dbg/dbgsym/doc)
     for deb in "$WORK"/*.deb; do
