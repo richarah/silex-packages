@@ -125,3 +125,11 @@ libpython3.11
 libpython3-dev
 # C++ stdlib dev (needed by g++-12)
 libstdc++-12-dev
+# GCC runtime sanitizer libraries (deps of gcc-12, 3rd-level from build-essential)
+libitm1
+libasan8
+liblsan0
+libtsan2
+libubsan1
+libquadmath0
+libgomp1

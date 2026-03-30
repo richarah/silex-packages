@@ -79,7 +79,9 @@ parse_deps() {
 
         # Handle OR alternatives: take first non-virtual package
         for alt in $(printf '%s' "$dep" | sed 's/[[:space:]]*|[[:space:]]/\n/g'); do
-            alt=$(printf '%s' "$alt" | sed 's/([^)]*)//g; s/\[[^]]*\]//g; s/^[[:space:]]*//; s/[[:space:]]*$//')
+            # Strip version constraints, arch qualifiers, and Debian :any/:native
+            # architecture suffixes on package names (e.g. python3:any -> python3)
+            alt=$(printf '%s' "$alt" | sed 's/([^)]*)//g; s/\[[^]]*\]//g; s/:[a-z][a-z0-9]*$//; s/^[[:space:]]*//; s/[[:space:]]*$//')
 
             # Skip Debian build-system substitution variables (${shlibs:Depends} etc.)
             case "$alt" in '${'*) continue ;; esac
