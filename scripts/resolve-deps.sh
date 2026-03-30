@@ -24,6 +24,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 SEEDS="$REPO_ROOT/config/seeds.list"
 SKIP="$REPO_ROOT/config/skip.list"
 CACHE="$REPO_ROOT/.closure-cache"
+SELF="$SCRIPT_DIR/resolve-deps.sh"
 
 [ -f "$SEEDS" ] || { printf 'resolve-deps: %s not found\n' "$SEEDS" >&2; exit 1; }
 
@@ -34,10 +35,11 @@ if [ -f "$SKIP" ]; then
     grep -v '^#' "$SKIP" | grep -v '^[[:space:]]*$' | awk '{print $1}' > "$SKIP_TMP" || true
 fi
 
-# Use cache if it exists, is non-empty, and is newer than seeds.list and skip.list
+# Use cache if it exists, is non-empty, and is newer than seeds.list, skip.list,
+# AND this script itself (so closure depth changes invalidate the cache).
 CACHE_VALID=false
-if [ -f "$CACHE" ] && [ "$(wc -l < "$CACHE")" -gt 0 ] && [ "$CACHE" -nt "$SEEDS" ]; then
-    # Also check if skip.list has changed
+if [ -f "$CACHE" ] && [ "$(wc -l < "$CACHE")" -gt 0 ] \
+        && [ "$CACHE" -nt "$SEEDS" ] && [ "$CACHE" -nt "$SELF" ]; then
     if [ ! -f "$SKIP" ] || [ "$CACHE" -nt "$SKIP" ]; then
         CACHE_VALID=true
     fi
