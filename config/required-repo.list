@@ -133,3 +133,9 @@ libtsan2
 libubsan1
 libquadmath0
 libgomp1
+# libc6-dev transitive deps (3rd-level from build-essential → libc6-dev)
+libc-dev-bin
+linux-libc-dev
+libcrypt-dev
+libnsl-dev
+rpcsvc-proto
