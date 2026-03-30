@@ -38,14 +38,15 @@ else
     MEM_KB=$(awk '/^MemAvailable:/ {print $2}' /proc/meminfo 2>/dev/null || echo "16777216")
     MEM_GB=$(( MEM_KB / 1048576 ))
 
-    # Each job can spike to 2GB during LTO linking, x86+arm run in parallel = 2x jobs
-    # So limit to available_mem / 4GB to leave headroom
-    MEM_JOBS=$(( MEM_GB / 4 ))
+    # Each job can spike to 2GB during LTO linking, x86+arm run in parallel = 2x jobs.
+    # Divide by 6 (not 4) to keep peak under ~40GB with a 64GB memory budget:
+    # 6 jobs/arch * 2 arches * 2GB/job = 24GB recompile peak.
+    MEM_JOBS=$(( MEM_GB / 6 ))
     [ "$MEM_JOBS" -lt 1 ] && MEM_JOBS=1
 
-    # Cap at nproc/2 and absolute max of 8
+    # Cap at nproc/2 and absolute max of 6 (was 8; reduced to fit 64GB cgroup)
     CPU_JOBS=$(( $(nproc) / 2 ))
-    [ "$CPU_JOBS" -gt 8 ] && CPU_JOBS=8
+    [ "$CPU_JOBS" -gt 6 ] && CPU_JOBS=6
 
     # Use the lower of memory and CPU limits
     JOBS="$MEM_JOBS"
