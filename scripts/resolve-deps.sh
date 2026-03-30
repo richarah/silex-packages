@@ -57,12 +57,18 @@ printf 'resolve-deps: computing closure from seeds (2 levels)...\n' >&2
 # Strips version constraints and filters to valid Debian package names.
 get_deps() {
     while IFS= read -r pkg; do
+        # grep '^  [A-Z]': leading-space lines are Depends/Pre-Depends entries;
+        # unindented lines are field names, virtual package alternatives (<foo>), etc.
         apt-cache depends --no-recommends --no-suggests \
             --no-conflicts --no-breaks --no-replaces --no-enhances \
             "$pkg" 2>/dev/null \
             | grep '^  [A-Z]' \
             | sed 's/.*: //; s/ (.*//'
     done | grep -E '^[a-z0-9][a-z0-9.+:-]*$'
+    # Final regex filter: valid Debian package name only. Removes virtual package
+    # markers like '<perl:any>' (angle brackets) and stray apt-cache error lines.
+    # Do NOT replace this with apt-cache show verification — apt-cache show returns
+    # exit 0 even when the package doesn't exist, producing a 0-package closure.
 }
 
 SEEDS_CLEAN=$(grep -v '^#' "$SEEDS" | grep -v '^[[:space:]]*$')
