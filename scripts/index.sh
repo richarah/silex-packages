@@ -16,6 +16,21 @@ do_index() {
     printf 'index: %s (%d packages)\n' "$DIR" "$count"
 
     apk index --allow-untrusted --arch "$ARCH" --output "${DIR}/APKINDEX.tar.gz" "$DIR"/*.apk
+
+    # Post-process: strip Debian :any/:native arch qualifiers from dependency entries.
+    # Cached APKs may have been built with old mkpkginfo.sh that didn't strip these.
+    # APK does not understand Debian arch qualifiers and will fail to resolve them.
+    IDX_TMP=$(mktemp -d)
+    trap 'rm -rf "$IDX_TMP"' EXIT INT TERM
+    tar -xzf "${DIR}/APKINDEX.tar.gz" -C "$IDX_TMP"
+    if [ -f "$IDX_TMP/APKINDEX" ]; then
+        sed -i '/^D:/ s/:[a-z][a-z0-9]*//g' "$IDX_TMP/APKINDEX"
+        tar -czf "${DIR}/APKINDEX.tar.gz" -C "$IDX_TMP" .
+        printf 'index: stripped :any/:native qualifiers from APKINDEX\n'
+    fi
+    rm -rf "$IDX_TMP"
+    trap - EXIT INT TERM
+
     printf 'index: %s/APKINDEX.tar.gz\n' "$DIR"
 }
 
