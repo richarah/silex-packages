@@ -95,7 +95,12 @@ parse_deps() {
         done
 
         dep=$(printf '%s' "$dep" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
-        [ -n "$dep" ] && [ "$dep" != "$orig_dep" ] && printf 'depend = %s\n' "$dep"
+        # Emit dep only if it is a valid APK/Debian package name.
+        # Do NOT use [ "$dep" != "$orig_dep" ] — that condition returns exit 1
+        # (false) for plain unversioned names like "node-read", which triggers
+        # set -e and crashes mkpkginfo.sh, silently aborting repack for any
+        # package whose deps have no version constraint (e.g. "Depends: foo").
+        case "$dep" in [a-z0-9]*) printf 'depend = %s\n' "$dep" ;; esac
     done
 }
 
