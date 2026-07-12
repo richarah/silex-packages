@@ -53,7 +53,7 @@ SIZE=$(du -sb "$STAGING" | cut -f1)
 # Derive output filename from .PKGINFO
 PKGNAME=$(grep '^pkgname' "$STAGING/.PKGINFO" | cut -d' ' -f3)
 PKGVER=$(grep '^pkgver'  "$STAGING/.PKGINFO" | cut -d' ' -f3)
-OUTPUT="$REPO_DIR/${PKGNAME}-${PKGVER}.${ARCH}.apk"
+OUTPUT="$REPO_DIR/${PKGNAME}-${PKGVER}.apk"
 
 # Assemble .apk
 "$SCRIPTS_DIR/mkapk.sh" "$STAGING" "$OUTPUT"

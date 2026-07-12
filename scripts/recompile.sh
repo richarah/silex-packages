@@ -225,7 +225,7 @@ SIZE=$(du -sb "$STAGING" | cut -f1)
 
 PKGNAME=$(awk '/^pkgname/{print $3}' "$STAGING/.PKGINFO")
 PKGVER=$(awk  '/^pkgver/{print $3}'  "$STAGING/.PKGINFO")
-OUTPUT="$REPO_DIR/${PKGNAME}-${PKGVER}.${ARCH}.apk"
+OUTPUT="$REPO_DIR/${PKGNAME}-${PKGVER}.apk"
 
 "$SCRIPTS_DIR/mkapk.sh" "$STAGING" "$OUTPUT"
 
