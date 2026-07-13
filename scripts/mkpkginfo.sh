@@ -114,10 +114,24 @@ URL=$(get Homepage)
 [ -n "$VER" ] || { printf 'mkpkginfo: no Version field in %s\n' "$CONTROL" >&2; exit 1; }
 
 # Normalise arch: Debian amd64/arm64 -> APK x86_64/aarch64
+#
+# Debian's "all" does NOT become apk's "noarch". apk locates a package under
+# $repo/$pkg_arch/, so a package tagged noarch is looked for in $repo/noarch/ --
+# which does not exist, because everything is published under x86_64/ and
+# aarch64/. The result was:
+#
+#     ERROR: tzdata-2026b-0+deb12u1-r0: package mentioned in index not found
+#
+# for 516 of 1753 packages (29% of the repo), including tzdata, debconf and
+# every other Architecture: all package. Alpine's own repositories tag
+# everything with the concrete architecture for exactly this reason.
+#
+# So an arch-independent package is tagged with the arch of the repository it is
+# being built into.
 case "$ARCH_FIELD" in
     amd64) PKGARCH="x86_64"  ;;
     arm64) PKGARCH="aarch64" ;;
-    all)   PKGARCH="noarch"  ;;
+    all)   PKGARCH="$ARCH"   ;;
     *)     PKGARCH="$ARCH"   ;;
 esac
 
