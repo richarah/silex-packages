@@ -135,16 +135,18 @@ jobs:
 
       - name: Prepare Pages content
         run: |
-          mkdir -p _pages
+          set -eu
+          mkdir -p _pages/keys
           cp -r x86_64 _pages/
           cp -r aarch64 _pages/
-          # Publish the repo public key alongside the packages, under the name
-          # the signed index references (.SIGN.RSA.silex-packages.rsa.pub), so a
-          # consumer can trust the repo without pulling it out of this git repo
-          # or the SDK image:
-          #   wget -O /etc/apk/keys/silex-packages.rsa.pub \
-          #     https://richarah.github.io/silex-packages/silex-packages.rsa.pub
-          cp keys/-69c32c6d.rsa.pub _pages/silex-packages.rsa.pub
+          # Publish the repo public key at the path the README documents, under
+          # the name the signed index references (.SIGN.RSA.silex-packages.rsa.pub).
+          # apk looks a key up BY THE NAME IN THE SIGNATURE, so the served and
+          # installed filename must be silex-packages.rsa.pub -- not the
+          # keyid-style name it is stored under in git. Until now this URL 404'd,
+          # so the README's setup snippet could not work for anyone outside the
+          # SDK image (which bakes the key in).
+          cp keys/-69c32c6d.rsa.pub _pages/keys/silex-packages.rsa.pub
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

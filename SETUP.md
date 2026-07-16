@@ -107,13 +107,27 @@ docker run --rm -it \
 
 1. Push the public key, config, and scripts.
 2. Go to repo Settings -> Pages.
-3. Source: "Deploy from a branch", Branch: `main`, Folder: `/`.
+3. Source: **"GitHub Actions"**.
 4. Save.
 
-URL: `https://richarah.github.io/silex-packages/`
+The source must be "GitHub Actions", not "Deploy from a branch": `build.yml`
+publishes with `actions/upload-pages-artifact` + `actions/deploy-pages`, which
+only works when Pages is set to the Actions source. Pointing it at a branch
+leaves the deploy job failing and the site serving whatever is on that branch.
 
-apk fetches the index from:
-`https://richarah.github.io/silex-packages/x86_64/`
+Repository URL — this is what goes in `/etc/apk/repositories`:
+
+```
+https://richarah.github.io/silex-packages
+```
+
+apk derives the rest itself, fetching the index from
+`https://richarah.github.io/silex-packages/<arch>/APKINDEX.tar.gz`. Do not put
+the architecture in the repositories line; apk would then look for
+`.../x86_64/x86_64/APKINDEX.tar.gz` and 404.
+
+The signing key is published at
+`https://richarah.github.io/silex-packages/keys/silex-packages.rsa.pub`.
 
 ## 6. Trigger CI
 
@@ -123,8 +137,45 @@ Push any change to `config/**` or `scripts/**` to trigger a build. Or use:
 gh workflow run build.yml
 ```
 
-The workflow builds both architectures in parallel, verifies the output, and
-commits the resulting `.apk` files and `APKINDEX.tar.gz` back to `main`.
+The workflow builds both architectures in parallel, signs the index, and
+publishes the `.apk` files plus `APKINDEX.tar.gz` to GitHub Pages.
+
+### CI runs on a self-hosted runner
+
+The `build` and `sign` jobs are pinned to `runs-on: [self-hosted, Linux, X64]`;
+only `deploy-pages` uses a GitHub-hosted runner. This is deliberate, and worth
+understanding before you touch CI.
+
+The closure is ~1750 packages per architecture: ~2.4 GB published per arch
+(~4.8 GB total, ~7.7 GB installed), plus build intermediates. A GitHub-hosted
+runner gives ~14 GB of free disk and a hard 6-hour per-job limit. The build takes
+~1h45m on a 12-core self-hosted box; on a 4-vCPU hosted runner it would need
+roughly three times that. It fits neither budget comfortably, so it stays
+self-hosted **for now**.
+
+Two consequences follow, and both have bitten this repo:
+
+- **The runner must outlive your shell.** Started as a foreground `./run.sh` it
+  dies with the session — or when the machine sleeps — and any in-flight job
+  stalls until it times out (GitHub still shows the runner `busy`). Install it
+  as a service so it survives sleep, logout, and reboot:
+
+  ```sh
+  cd ~/actions-runner
+  sudo ./svc.sh install
+  sudo ./svc.sh start
+  sudo ./svc.sh status
+  ```
+
+- **Docker must be running on the runner host.** Both jobs execute inside
+  containers (`debian:bookworm` to build, `alpine:3.23` to sign), so a stopped
+  Docker daemon fails the job within seconds with `docker: command not found`.
+
+`build-single.yml` already targets GitHub-hosted runners (including the free
+`ubuntu-24.04-arm` for aarch64) to build one package at a time. Moving the full
+closure there would mean splitting `build.yml` into a chunked matrix that fits
+under the per-job budget; the `gen-layers.sh` / `repack-chunk.sh` machinery for
+that already exists, but `build.yml` does not use it yet.
 
 ## 7. Verify from a container
 

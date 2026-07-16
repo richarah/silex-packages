@@ -27,12 +27,19 @@ To use from a non-Silex Alpine or Wolfi container:
 ```sh
 wget -O /etc/apk/keys/silex-packages.rsa.pub \
     https://richarah.github.io/silex-packages/keys/silex-packages.rsa.pub
-echo "https://richarah.github.io/silex-packages/x86_64/" \
-    >> /etc/apk/repositories
+echo "https://richarah.github.io/silex-packages" >> /etc/apk/repositories
 apk update
 ```
 
-Replace `x86_64` with `aarch64` as appropriate.
+The repository line is the **base URL, with no architecture**: apk appends
+`<arch>/APKINDEX.tar.gz` itself, exactly as it does for Alpine's own CDN. Adding
+`/x86_64/` makes apk request `.../x86_64/x86_64/APKINDEX.tar.gz` and 404. Both
+`x86_64` and `aarch64` are served, and apk picks the right one for the host.
+
+The key filename must stay `silex-packages.rsa.pub`: apk looks a key up by the
+name embedded in the index signature (`.SIGN.RSA.silex-packages.rsa.pub`), not
+by content, so renaming it means apk will not find it and will report the index
+as UNTRUSTED.
 
 ---
 
@@ -78,6 +85,11 @@ To add a package to the repository:
 2. If `classify.sh` would misclassify it, add it to
    `config/recompile-override.list` or `config/repack-override.list`.
 3. Push. CI rebuilds the full closure automatically.
+
+The full-closure build runs on a **self-hosted runner** — it needs more disk and
+wall-clock than a GitHub-hosted runner allows. See [SETUP.md](SETUP.md#ci-runs-on-a-self-hosted-runner)
+for why, and for installing the runner as a service so it survives sleep and
+reboots.
 
 To exclude a package from the closure (e.g. it is already in the base image):
 
