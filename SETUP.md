@@ -140,42 +140,57 @@ gh workflow run build.yml
 The workflow builds both architectures in parallel, signs the index, and
 publishes the `.apk` files plus `APKINDEX.tar.gz` to GitHub Pages.
 
-### CI runs on a self-hosted runner
+### CI runs entirely on GitHub-hosted runners
 
-The `build` and `sign` jobs are pinned to `runs-on: [self-hosted, Linux, X64]`;
-only `deploy-pages` uses a GitHub-hosted runner. This is deliberate, and worth
-understanding before you touch CI.
+No self-hosted runner is required. `build.yml` runs one job per architecture, on
+a runner of that architecture:
 
-The closure is ~1750 packages per architecture: ~2.4 GB published per arch
-(~4.8 GB total, ~7.7 GB installed), plus build intermediates. A GitHub-hosted
-runner gives ~14 GB of free disk and a hard 6-hour per-job limit. The build takes
-~1h45m on a 12-core self-hosted box; on a 4-vCPU hosted runner it would need
-roughly three times that. It fits neither budget comfortably, so it stays
-self-hosted **for now**.
+| job | runner | notes |
+|-----|--------|-------|
+| `build (x86_64)` | `ubuntu-latest` | native |
+| `build (aarch64)` | `ubuntu-24.04-arm` | native — free ARM runner for public repos |
+| `sign-indexes` | `ubuntu-latest` | index-only, needs no build capacity |
+| `deploy-pages` | `ubuntu-latest` | |
 
-Two consequences follow, and both have bitten this repo:
+The two architectures build concurrently. Measured on the migration run: aarch64
+in ~34 min (2223 MB of packages), the whole pipeline — both arches, sign, and
+deploy — in ~48 min wall-clock.
 
-- **The runner must outlive your shell.** Started as a foreground `./run.sh` it
-  dies with the session — or when the machine sleeps — and any in-flight job
-  stalls until it times out (GitHub still shows the runner `busy`). Install it
-  as a service so it survives sleep, logout, and reboot:
+It fits a hosted runner (4 vCPU / 16 GB / ~14 GB disk / 6 h) because:
 
-  ```sh
-  cd ~/actions-runner
-  sudo ./svc.sh install
-  sudo ./svc.sh start
-  sudo ./svc.sh status
-  ```
+- **Splitting by arch halves the per-job output** — ~2.2 GB rather than ~4.8 GB.
+- **`recompile.sh` sizes its own parallelism** from `MemAvailable` and `nproc`
+  (`MEM_GB/6`, capped at `nproc/2`), so it self-limits to ~2 concurrent compiles
+  on a hosted runner instead of the 6/arch it picks on a large box. No OOM, and
+  nothing to tune per runner.
+- **Time was never the constraint.** The old single self-hosted job spent ~47 min
+  building both arches; most of the rest of its ~1h47m was uploading one ~5 GB
+  artifact. Per-arch artifacts are ~2.2 GB and upload concurrently.
 
-- **Docker must be running on the runner host.** Both jobs execute inside
-  containers (`debian:bookworm` to build, `alpine:3.23` to sign), so a stopped
-  Docker daemon fails the job within seconds with `docker: command not found`.
+aarch64 is *faster* here than it was on the old self-hosted x86 box, which ran it
+under `qemu-user-static`. Native ARM removes the emulation entirely, and there is
+no `qemu` in the build image any more.
 
-`build-single.yml` already targets GitHub-hosted runners (including the free
-`ubuntu-24.04-arm` for aarch64) to build one package at a time. Moving the full
-closure there would mean splitting `build.yml` into a chunked matrix that fits
-under the per-job budget; the `gen-layers.sh` / `repack-chunk.sh` machinery for
-that already exists, but `build.yml` does not use it yet.
+#### Building locally instead
+
+The Makefile targets are unchanged, so a big machine can still do the whole thing
+directly — useful for iterating without waiting on CI:
+
+```sh
+make -j "$(nproc)" build      # both arches (aarch64 needs qemu-user-static)
+make build-x86                # one arch only
+```
+
+Note that building aarch64 on an x86 host requires `qemu-user-static` and is
+substantially slower than the native ARM runner CI now uses.
+
+A self-hosted runner remains possible (`runs-on: [self-hosted, Linux, X64]`) if
+you want CI on your own hardware, but it is no longer needed, and it carries two
+failure modes worth knowing: a runner started as a foreground `./run.sh` dies
+with its shell session (or when the machine sleeps), stalling in-flight jobs
+while GitHub still reports it `busy` — install it via `sudo ./svc.sh install` to
+survive that — and the jobs run in containers, so a stopped Docker daemon on the
+host fails them immediately with `docker: command not found`.
 
 ## 7. Verify from a container
 

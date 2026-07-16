@@ -86,10 +86,11 @@ To add a package to the repository:
    `config/recompile-override.list` or `config/repack-override.list`.
 3. Push. CI rebuilds the full closure automatically.
 
-The full-closure build runs on a **self-hosted runner** — it needs more disk and
-wall-clock than a GitHub-hosted runner allows. See [SETUP.md](SETUP.md#ci-runs-on-a-self-hosted-runner)
-for why, and for installing the runner as a service so it survives sleep and
-reboots.
+CI builds both architectures on GitHub-hosted runners — natively, in parallel,
+with no self-hosted runner and no QEMU (aarch64 uses the free `ubuntu-24.04-arm`
+runner). The full pipeline takes ~48 minutes. See
+[SETUP.md](SETUP.md#ci-runs-entirely-on-github-hosted-runners) for the layout and
+for building locally instead.
 
 To exclude a package from the closure (e.g. it is already in the base image):
 
