@@ -18,14 +18,41 @@ permissions:
   id-token: write
 
 jobs:
+  # One job per architecture, each on a runner of that architecture.
+  #
+  # This used to be a single self-hosted x86 job building BOTH arches, with
+  # aarch64 running under qemu-user-static. GitHub gives public repos free native
+  # arm64 runners (ubuntu-24.04-arm), which build-single.yml already uses, so
+  # each arch now compiles natively: no emulation, and the two run in parallel.
+  #
+  # Fitting a GitHub-hosted runner (4 vCPU / 16 GB / ~14 GB disk / 6 h):
+  #   - Splitting by arch halves the output per job (~2.4 GB instead of ~4.8 GB).
+  #   - recompile.sh sizes its own parallelism from MemAvailable and nproc
+  #     (MEM_GB/6, capped at nproc/2), so it self-limits to ~2 jobs here rather
+  #     than the 6/arch it picks on a big box. No OOM, no tuning needed.
+  #   - The old job spent ~47 min building both arches on 12 cores, then ~18 min
+  #     uploading a single ~5 GB artifact. Per-arch artifacts are ~2.4 GB and
+  #     upload concurrently.
   build:
-    name: Build (x86_64 + aarch64)
-    runs-on: [self-hosted, Linux, X64]
+    name: Build ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-latest
+            target: build-x86
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+            target: build-arm
+    runs-on: ${{ matrix.runner }}
     container:
       image: debian:bookworm
     steps:
       - uses: actions/checkout@v5
 
+      # qemu-user-static is deliberately absent: each arch builds on its own
+      # native runner, so there is nothing to emulate.
       - name: Install build dependencies
         run: |
           apt-get update -qq
@@ -33,13 +60,14 @@ jobs:
               clang mold ninja-build cmake meson autoconf automake \
               dpkg-dev devscripts fakeroot build-essential \
               curl ca-certificates git file openssl \
-              libzstd-dev libssl-dev zlib1g-dev pkg-config \
-              qemu-user-static
+              libzstd-dev libssl-dev zlib1g-dev pkg-config
 
+      # apk.static must match the runner's architecture -- this URL was hardcoded
+      # to x86_64, which would install an x86 binary on the arm64 runner.
       - name: Install apk-tools
         run: |
           curl -fsSL \
-              "https://gitlab.alpinelinux.org/api/v4/projects/5/packages/generic//v3.0.5/x86_64/apk.static" \
+              "https://gitlab.alpinelinux.org/api/v4/projects/5/packages/generic//v3.0.5/${{ matrix.arch }}/apk.static" \
               -o /usr/local/bin/apk
           chmod +x /usr/local/bin/apk
 
@@ -74,8 +102,12 @@ jobs:
       - name: Make scripts executable
         run: chmod +x scripts/*.sh
 
-      - name: Build (x86_64 + aarch64)
-        run: make -j 32 build
+      # `make -j 32` was sized for a 12-core box. It is not what parallelises the
+      # work anyway: repack backgrounds its 12 chunks itself and recompile.sh
+      # picks its own job count from the runner's memory, so a modest -j here
+      # only bounds make's own target-level concurrency.
+      - name: Build ${{ matrix.arch }}
+        run: make -j 4 ${{ matrix.target }}
         env:
           PRIVKEY: /tmp/silex-keys/silex-packages.rsa
           PUBKEY:  /tmp/silex-keys/silex-packages.rsa.pub
@@ -84,15 +116,16 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v5
         with:
-          name: silex-packages-apks
-          path: |
-            x86_64/
-            aarch64/
+          name: silex-packages-${{ matrix.arch }}
+          path: ${{ matrix.arch }}/
 
+  # Signing is index-only and cheap, so it needs no self-hosted capacity. It runs
+  # on a GitHub-hosted runner and pulls each arch's artifact back into its own
+  # directory (the build jobs now upload one artifact per arch).
   sign-indexes:
     name: Sign APKINDEXes
     needs: build
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
     container:
       image: alpine:3.23
     steps:
@@ -101,10 +134,20 @@ jobs:
       - name: Install signing tools
         run: apk add --no-cache openssl abuild git
 
-      - name: Download build artifacts
+      # Downloaded per-arch and into an explicit path: upload-artifact roots the
+      # archive at the uploaded directory, so the arch prefix has to be restored
+      # here or both arches would collide at the workspace root.
+      - name: Download x86_64 packages
         uses: actions/download-artifact@v5
         with:
-          name: silex-packages-apks
+          name: silex-packages-x86_64
+          path: x86_64
+
+      - name: Download aarch64 packages
+        uses: actions/download-artifact@v5
+        with:
+          name: silex-packages-aarch64
+          path: aarch64
 
       - name: Setup signing keys
         run: |
