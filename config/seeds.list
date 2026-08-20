@@ -635,3 +635,25 @@ libgomp1
 libm-dev
 libquadmath0
 libatomic1
+
+# Missing transitive dependencies (added 2026-08-20).
+#
+# These three were absent from the published index, and the first two are the
+# root of every "unable to select packages" failure seen against this repo:
+#
+#   libtirpc-dev  required by libnsl-dev, which libc6-dev pulls in. Its absence
+#                 makes zlib1g-dev and libtool uninstallable, which is what
+#                 breaks the SDK compat tests (0/7) and the pigz/apk-tools
+#                 stages of the self-hosted image build.
+#   libpkgconf3   required by pkgconf-bin, which pkg-config depends on. Its
+#                 absence makes pkg-config uninstallable outright.
+#
+# Both of the above are already published as *dependents* (zlib1g-dev, libtool,
+# pkg-config, pkgconf-bin and libnsl-dev are all in the index) -- only these
+# roots were missed, so publishing them repairs the whole chain.
+#
+#   libarchive-dev  not in any seed's closure, so it was never scheduled at
+#                   all; needed to build pixz.
+libtirpc-dev
+libpkgconf3
+libarchive-dev
