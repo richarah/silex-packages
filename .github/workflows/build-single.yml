@@ -56,12 +56,25 @@ jobs:
 
       - name: Setup signing keys
         run: |
-          mkdir -p keys /tmp/silex-keys
-          printf '%s' "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
-          printf '%s' "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
+          set -eu
+          mkdir -p /tmp/silex-keys /etc/apk/keys
+          printf '%s' "$SILEX_PKG_RSA" > /tmp/silex-keys/silex-packages.rsa
+          chmod 600 /tmp/silex-keys/silex-packages.rsa
+          # DERIVE the public key from the private one rather than reading a
+          # second secret. The pub half is not independent information, and the
+          # secret that used to supply it is named SILEX_PKGS_RSA_PUB while
+          # every reference here said SILEX_PKG_RSA_PUB -- so the expansion was
+          # the empty string and this wrote a 0-byte "public key". That went
+          # unnoticed only because the Pages step copies the committed
+          # keys/-69c32c6d.rsa.pub by name and never reads this file.
+          # Deriving cannot drift from the signing key by construction.
+          openssl rsa -in /tmp/silex-keys/silex-packages.rsa -pubout \
+                  -out /tmp/silex-keys/silex-packages.rsa.pub 2>/dev/null
+          test -s /tmp/silex-keys/silex-packages.rsa.pub
+          cp /tmp/silex-keys/silex-packages.rsa.pub /etc/apk/keys/
+          cp /tmp/silex-keys/silex-packages.rsa.pub keys/
         env:
-          SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
-          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
+          SILEX_PKG_RSA: ${{ secrets.SILEX_PKG_RSA }}
 
       - name: Enable deb-src
         run: |
@@ -130,12 +143,25 @@ jobs:
 
       - name: Setup signing keys
         run: |
-          mkdir -p keys /tmp/silex-keys
-          printf '%s' "$SILEX_PKG_RSA"     > /tmp/silex-keys/silex-packages.rsa
-          printf '%s' "$SILEX_PKG_RSA_PUB" > /tmp/silex-keys/silex-packages.rsa.pub
+          set -eu
+          mkdir -p /tmp/silex-keys /etc/apk/keys
+          printf '%s' "$SILEX_PKG_RSA" > /tmp/silex-keys/silex-packages.rsa
+          chmod 600 /tmp/silex-keys/silex-packages.rsa
+          # DERIVE the public key from the private one rather than reading a
+          # second secret. The pub half is not independent information, and the
+          # secret that used to supply it is named SILEX_PKGS_RSA_PUB while
+          # every reference here said SILEX_PKG_RSA_PUB -- so the expansion was
+          # the empty string and this wrote a 0-byte "public key". That went
+          # unnoticed only because the Pages step copies the committed
+          # keys/-69c32c6d.rsa.pub by name and never reads this file.
+          # Deriving cannot drift from the signing key by construction.
+          openssl rsa -in /tmp/silex-keys/silex-packages.rsa -pubout \
+                  -out /tmp/silex-keys/silex-packages.rsa.pub 2>/dev/null
+          test -s /tmp/silex-keys/silex-packages.rsa.pub
+          cp /tmp/silex-keys/silex-packages.rsa.pub /etc/apk/keys/
+          cp /tmp/silex-keys/silex-packages.rsa.pub keys/
         env:
-          SILEX_PKG_RSA:     ${{ secrets.SILEX_PKG_RSA }}
-          SILEX_PKG_RSA_PUB: ${{ secrets.SILEX_PKG_RSA_PUB }}
+          SILEX_PKG_RSA: ${{ secrets.SILEX_PKG_RSA }}
 
       - name: Enable deb-src
         run: |
